@@ -1,2 +1,6 @@
 # RenPatch
 An automated tool to fix missing characters (tofu/☒) in Ren'Py games. Scans game scripts and generates lightweight font subset patches.
+
+MIT License
+
+Copyright (c) 2025 Mochiredpanda/Jiyu He
