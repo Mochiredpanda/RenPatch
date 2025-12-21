@@ -107,28 +107,45 @@ def save_missing_report(missing_chars, report_path, font_name):
     print(f"Report generated: {report_path}")
 
 ### SUBSETTER ###
-# Surgical Subsetter to find missing chars in a substitute font
 
+# Verify patch result to missing char set
+def verify_patch(target_chars, patch_path):
+    """
+    Checks the generated patch to see which characters actually made it in.
+    Return: sets of success and failed characters.
+    """
+    if not os.path.exists(patch_path):
+        return set()
+
+    patch_font = TTFont(patch_path)
+    patch_cmap = patch_font.getBestCmap()
+    patch_font.close()
+
+    # Characters that are successfully in the patch
+    success_chars = {c for c in target_chars if ord(c) in patch_cmap}
+    failed_chars = target_chars - success_chars
+
+    return success_chars, failed_chars
+
+# Surgical Subsetter to find missing chars in a substitute font
 def generate_patch_font(missing_chars, full_font_path, output_path):
     """
     Extracts specific characters from a full font and saves them as a tiny subset font.
-    Return: Bool, T for patch font file generated successfully.
+    Return: Bool
     """
     if not missing_chars:
-        print("No missing characters found. No patch needed!")
-        return False
+        return True, 0.0, set()
 
     try:
         # Config subsetter options
-        # default options, optimized for size
         options = subset.Options()
-        
-        # Prepare set to list
-        text_to_extract = "".join(list(missing_chars))
+        # Keep glyph names
+        options.notdef_outline = True
         
         # Load full font and do subsetting
         font = TTFont(full_font_path)
         subsetter = subset.Subsetter(options=options)
+        text_to_extract = "".join(list(missing_chars)) # conver to list
         subsetter.populate(text=text_to_extract)
         subsetter.subset(font)
         
@@ -136,10 +153,22 @@ def generate_patch_font(missing_chars, full_font_path, output_path):
         font.save(output_path)
         font.close()
         
+        # --- Verification Report ---
+        success, failed = verify_patch(missing_chars, output_path)
+        total = len(missing_chars)
+        rate = (len(success) / total) * 100 if total > 0 else 100
+        
+        print(f"\n--- Patch Report ---")
         print(f"Success! Patch font saved to: {output_path}")
         print(f"Patch size: {os.path.getsize(output_path) / 1024:.2f} KB")
-        return True
+        print(f"Patch Rate: {rate:.2f}% ({len(success)} out of {total})")
+        
+        if failed:
+            print(f"Failed to patch: {''.join(list(failed))}")
+            print("Above characters do not exist in your 'Full' donor font.")
+        
+        return True, rate, failed
 
     except Exception as e:
         print(f"Error generating patch font: {e}")
-        return False
+        return False, 0.0, missing_chars
