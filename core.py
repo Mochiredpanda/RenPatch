@@ -4,6 +4,8 @@ import re
 from fontTools.ttLib import TTFont
 from fontTools import subset
 
+import unicodedata
+
 ### SCANNER ###
 def get_unique_characters(game_dir):
     """
@@ -38,6 +40,7 @@ def get_unique_characters(game_dir):
     return unique_chars
 
 ### TOFU EXTRACTOR ###
+# Extract missing chars in lite font
 def get_missing_characters(found_chars, lite_font_path):
     """
     Identifies characters in found_chars but missing from the lite_font.
@@ -69,6 +72,39 @@ def get_missing_characters(found_chars, lite_font_path):
         print(f"Error analyzing font {lite_font_path}: {e}")
         
     return missing_chars
+
+# Generate Report of Tofu Characters
+def save_missing_report(missing_chars, report_path, font_name):
+    """
+    Generates a Markdown report of missing characters with hex codes and wiki links.
+    """
+    if not missing_chars:
+        return
+
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# RenPatch: Missing Characters Report\n\n")
+        f.write("The following characters were found in your scripts but are missing from your font %s.\n\n" % font_name)
+        f.write("| Char | Hex Code | Unicode Name | Wiki Link |\n")
+
+        # Sort by hex code
+        sorted_chars = sorted(list(missing_chars), key=lambda x: ord(x))
+
+        for char in sorted_chars:
+            hex_code = f"{ord(char):04X}"
+            
+            # Get a human-readable name
+            #   e.g., "CJK UNIFIED IDEOGRAPH-561A"
+            try:
+                name = unicodedata.name(char)
+            except ValueError:
+                name = "Unknown Character"
+
+            # Compart links
+            wiki_link = f"[View on Compart](https://www.compart.com/en/unicode/U+{hex_code})"
+            
+            f.write(f"{char}\tU+{hex_code}\t{name}\t{wiki_link}\n")
+
+    print(f"Report generated: {report_path}")
 
 ### SUBSETTER ###
 # Surgical Subsetter to find missing chars in a substitute font

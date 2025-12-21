@@ -7,7 +7,7 @@ from fontTools import subset
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 
-from core import get_unique_characters, get_missing_characters, generate_patch_font
+from core import *
 
 # --- Test Block ---
 if __name__ == "__main__":
@@ -16,6 +16,7 @@ if __name__ == "__main__":
     lite_font = "/Users/jiyuhe/Downloads/game/SourceHanSansLite.ttf"
     full_font = "/Users/jiyuhe/Downloads/game/NotoSansSC.ttf"
     patch_output = "/Users/jiyuhe/Downloads/game/patch.ttf"
+    font_name = "SourceHanSansLite.ttf"
     
     if os.path.exists(test_path) and os.path.exists(lite_font) and os.path.exists(full_font):
         ## SCANNER TEST
@@ -35,6 +36,8 @@ if __name__ == "__main__":
         missing = get_missing_characters(chars, lite_font) 
         print(f"Total missing characters: {len(missing)}")
         print(f"Sample: {''.join(list(missing)[:20])}")
+        # Missing Tofu Report
+        save_missing_report(missing, "missing_characters.md", font_name)
         
         ## SUBSETTER TEST
         if generate_patch_font(missing, full_font, patch_output):
