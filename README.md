@@ -1,14 +1,17 @@
 # <img src="icons/favicon.png" width="50" height="50" valign="middle"> RedPanda RenPatch（RPRP）
 
-![RedPanda RenPatch](icons/favicon.png)
+<img src="icons/favicon.png" width="250" height="250" alt="main icon">
 
 **RedPanda RenPatch(RPRP)** is a surgical font optimization tool designed specifically for Ren'Py developers. It solves the "Tofu" (missing character ☒) problem in lightweight fonts by scanning game scripts, identifying missing glyphs, and generating a tiny, high-performance font patch.
+
+---
 
 RedPanda RenPatch（RPRP）是一个为 Ren'Py 引擎设计的字体修复工具，以解决独立游戏开发中的☒缺字问题。RenPatch可以自动扫描游戏脚本文件、对比字库索引来准提取缺失字符，生成体积极小的补丁字库及配套集成的`.rpy`脚本，以供开发者进行字体校准和优化。开发者无需内置更大的完整版字体文件，即可实现更好的跨语言文字显示。
 
 ---
 
-## Features (Current Phase: Core Logic / Mannual Mode)
+## Features
+### Current Phase: Core Logic / Mannual Mode
 
 The following core functionalities are currently implemented in `core.py`:
 
@@ -18,9 +21,7 @@ The following core functionalities are currently implemented in `core.py`:
 - **Missing Character Reporter**: Generates a detailed Markdown report with Hex codes and direct links to Unicode wikis (Compart) for every missing character.
 - **Automated Ren'Py Integration**: Generates a drop-in `.rpy` script with explicit `FontGroup` mapping to ensure Ren'Py prioritizes the patch for problematic characters.
 
----
-
-## How to Use
+### How to Use
 
 Currently, the tool operates as a Python backend. See more on the `test.py` file as example:
 
@@ -53,8 +54,6 @@ Multi-language Optimization
 - Specialized logic for Korean/Japanese support.
 - Drastically reduce font bloat in international releases.
 - Add multi-language font solution to your Ren'Py projects.
-
----
 
 ## License
 
