@@ -2,6 +2,7 @@ import os
 import re
 
 from fontTools.ttLib import TTFont
+from fontTools import subset
 
 ### SCANNER ###
 def get_unique_characters(game_dir):
@@ -49,6 +50,7 @@ def get_missing_characters(found_chars, lite_font_path):
         font = TTFont(lite_font_path)
         
         # Get cmap table
+        # Use getBestCmap() to get most comprehensive Unicode-compatible table
         unicode_map = font.getBestCmap() 
         
         # unicode_map
@@ -57,12 +59,51 @@ def get_missing_characters(found_chars, lite_font_path):
         
         for char in found_chars:
             # use ord() to convert character to its Unicode int ID
+            # O(1)
             if ord(char) not in unicode_map:
                 missing_chars.add(char)
                 
         font.close()
-        
+             
     except Exception as e:
         print(f"Error analyzing font {lite_font_path}: {e}")
         
     return missing_chars
+
+### SUBSETTER ###
+# Surgical Subsetter to find missing chars in a substitute font
+
+def generate_patch_font(missing_chars, full_font_path, output_path):
+    """
+    Extracts specific characters from a full font and saves them as a tiny subset font.
+    Return: Bool, T for patch font file generated successfully.
+    """
+    if not missing_chars:
+        print("No missing characters found. No patch needed!")
+        return False
+
+    try:
+        # Config subsetter options
+        # default options, optimized for size
+        options = subset.Options()
+        
+        # Prepare set to list
+        text_to_extract = "".join(list(missing_chars))
+        
+        # Load full font and do subsetting
+        font = TTFont(full_font_path)
+        subsetter = subset.Subsetter(options=options)
+        subsetter.populate(text=text_to_extract)
+        subsetter.subset(font)
+        
+        # Save patch font
+        font.save(output_path)
+        font.close()
+        
+        print(f"Success! Patch font saved to: {output_path}")
+        print(f"Patch size: {os.path.getsize(output_path) / 1024:.2f} KB")
+        return True
+
+    except Exception as e:
+        print(f"Error generating patch font: {e}")
+        return False
