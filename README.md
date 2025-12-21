@@ -1,10 +1,14 @@
-# <img src="icons/favicon.png" width="40" height="40" valign="middle"> RenPatch
+# <img src="icons/favicon.png" width="50" height="50" valign="middle"> RedPanda RenPatch（RPRP）
 
-**RedPanda RenPatch** is a surgical font optimization tool designed specifically for Ren'Py developers. It solves the "Tofu" (missing character ☒) problem in lightweight fonts by scanning game scripts, identifying missing glyphs, and generating a tiny, high-performance font patch.
+![RedPanda RenPatch](icons/favicon.png)
+
+**RedPanda RenPatch（RPRP）** is a surgical font optimization tool designed specifically for Ren'Py developers. It solves the "Tofu" (missing character ☒) problem in lightweight fonts by scanning game scripts, identifying missing glyphs, and generating a tiny, high-performance font patch.
+
+RedPanda RenPatch（RPRP）是一个为 Ren'Py 引擎设计的字体修复工具，以解决独立游戏开发中的☒缺字问题。RenPatch可以自动扫描游戏脚本文件、对比字库索引来准提取缺失字符，生成体积极小的补丁字库及配套集成的`.rpy`脚本，以供开发者进行字体校准和优化。开发者无需内置更大的完整版字体文件，即可实现更好的跨语言文字显示。
 
 ---
 
-RedPanda RenPatch（RPRP）是一个为 Ren'Py 引擎设计的字体修复工具，以解决独立游戏开发中的☒缺字问题。RenPatch可以自动扫描游戏脚本文件、对比字库索引来准提取缺失字符，生成体积极小的补丁字库及配套集成的`.rpy`脚本，以供开发者进行字体校准和优化。开发者无需内置更大的完整版字体文件，即可实现更好的跨语言文字显示。
+
 
 ---
 
@@ -45,10 +49,14 @@ Modern GUI (Coming Soon)
 - Designed for RenPy developers and screenwriters to fix missing character problem without any Python knowledges.
 
 Turbo Mode (Coming Soon)
-Full Custom Subsetting: Instead of a patch, generate a single, perfectly optimized font containing only the characters used in your game. Largely reduce the font size in your game packages. Built high-performance font solution for your Ren'Py projects.
+- Full Custom Subsetting: Instead of a patch, generate a single, perfectly optimized font containing only the characters used in your game.
+- Largely reduce the font size in your game packages.
+- Built high-performance font solution for your Ren'Py projects.
 
 Multi-language Optimization
-Specialized logic for Korean/Japanese support, to drastically reduce font bloat in international releases. Add multi-language font solution to your Ren'Py projects.
+- Specialized logic for Korean/Japanese support.
+- Drastically reduce font bloat in international releases.
+- Add multi-language font solution to your Ren'Py projects.
 
 ---
 
