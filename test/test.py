@@ -17,6 +17,7 @@ if __name__ == "__main__":
     full_font = "/Users/jiyuhe/Downloads/game/NotoSansSC.ttf"
     patch_output = "/Users/jiyuhe/Downloads/game/patch.ttf"
     font_name = "SourceHanSansLite.ttf"
+    rpy_output = "/Users/jiyuhe/Downloads/game/font_patch.rpy"
     
     if os.path.exists(test_path) and os.path.exists(lite_font) and os.path.exists(full_font):
         ## SCANNER TEST
@@ -32,14 +33,25 @@ if __name__ == "__main__":
         #         chunk = list(chars)[i:i+20]
         #         f.write(' '.join(chunk) + '\n')
                 
-        ## TOFU EXTRACTOR TEST
+        ## EXTRACTOR TEST
         missing = get_missing_characters(chars, lite_font) 
-        print(f"Total missing characters: {len(missing)}")
-        print(f"Sample: {''.join(list(missing)[:20])}")
-        # Missing Tofu Report
-        save_missing_report(missing, "missing_characters.md", font_name)
+        if missing:
+            print(f"Total missing characters: {len(missing)}")
+            print(f"Sample: {''.join(list(missing)[:20])}")
+            # Generate Missing Report
+            save_missing_report(missing, "missing_characters.md", font_name)
+            
+            ## SUBSETTER TEST
+            if generate_patch_font(missing, full_font, patch_output):
+                print("The surgical patch is ready!")
+            
+            ## SCRIPT TEST
+            patch_file = "patch.ttf"
+            lite_font_name = "SourceHanSansLite.ttf"
+            generate_renpy_script(missing, patch_file, lite_font_name, rpy_output)
+            print("\nPipeline Complete! Drop the generated files into your game folder.")
+        else:
+            print("No missing characters detected. Your font is healthy!")
+            
         
-        ## SUBSETTER TEST
-        if generate_patch_font(missing, full_font, patch_output):
-            print("The surgical patch is ready!")
         

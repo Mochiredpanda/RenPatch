@@ -39,7 +39,7 @@ def get_unique_characters(game_dir):
 
     return unique_chars
 
-### TOFU EXTRACTOR ###
+### EXTRACTOR ###
 # Extract missing chars in lite font
 def get_missing_characters(found_chars, lite_font_path):
     """
@@ -73,7 +73,7 @@ def get_missing_characters(found_chars, lite_font_path):
         
     return missing_chars
 
-# Generate Report of Tofu Characters
+# Generate Report of Missing Characters
 def save_missing_report(missing_chars, report_path, font_name):
     """
     Generates a Markdown report of missing characters with hex codes and wiki links.
@@ -164,11 +164,61 @@ def generate_patch_font(missing_chars, full_font_path, output_path):
         print(f"Patch Rate: {rate:.2f}% ({len(success)} out of {total})")
         
         if failed:
-            print(f"Failed to patch: {''.join(list(failed))}")
-            print("Above characters do not exist in your 'Full' donor font.")
+            print("\nThe following characters do not exist in your donor font.")
+            print(f"Failed to patch: \n{''.join(list(failed))}")
+            print("Try with another donor font.")
         
         return True, rate, failed
 
     except Exception as e:
         print(f"Error generating patch font: {e}")
         return False, 0.0, missing_chars
+    
+### FONT PACTCH SCRIPT ###
+# TODO: Fix output script to only includes successfully patched missing characters.
+def generate_renpy_script(missing_chars, patch_filename, lite_font_filename, output_path):
+    """
+    Creates a drop-in .rpy script with explicit character mapping for every missing glyph.
+    """
+    if not missing_chars:
+        return False
+    
+    script_lines = [
+        "# --- RenPatch Auto-Generated Integration ---",
+        f"# Missing Characters Handled: {len(missing_chars)}",
+        "",
+        "init python:",
+        "    # Initialize the FontGroup",
+        "    renpatch_font = FontGroup()"
+    ]
+    
+    # Add explicit surgical entries for every missing character
+    # Sort by ordinal to keep it organized
+    sorted_missing = sorted(list(missing_chars), key=lambda x: ord(x))
+    
+    script_lines.append("    # Explicitly map missing characters to the patch font")
+    for char in sorted_missing:
+        hex_code = hex(ord(char))
+        # Represent the char in a comment for developer readability
+        script_lines.append(f"    renpatch_font = renpatch_font.add('{patch_filename}', {hex_code}, {hex_code}) # {char}")
+
+    # 3. Add the Lite font as the final fallback for everything else
+    script_lines.append("")
+    script_lines.append("    # Use Lite font for all the other characters")
+    script_lines.append(f"    renpatch_font = renpatch_font.add('{lite_font_filename}', 0x0000, 0xffff)")
+    
+    # 4. Map the group to the config
+    script_lines.append("")
+    script_lines.append('    # Map the group to "renpatch_style" for use')
+    script_lines.append("    # Rename your font group name to replace 'renpatch_style' if needed.")
+    script_lines.append("    # Make sure to keep your front group name IN the single quotes.")
+    script_lines.append("    config.font_name_map['renpatch_style'] = renpatch_font")
+
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(script_lines))
+        print(f"Integration script generated with {len(missing_chars)} explicit mappings.")
+        return True
+    except Exception as e:
+        print(f"Error generating Ren'Py script: {e}")
+        return False
