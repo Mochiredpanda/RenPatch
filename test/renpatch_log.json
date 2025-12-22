@@ -1,0 +1,12 @@
+{
+    "success": [
+        "é",
+        "铤",
+        "嘚"
+    ],
+    "failed": [
+        "▸"
+    ],
+    "patch_filename": "patch.ttf",
+    "lite_font_filename": "SourceHanSansLite.ttf"
+}

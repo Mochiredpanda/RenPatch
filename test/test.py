@@ -42,13 +42,15 @@ if __name__ == "__main__":
             save_missing_report(missing, "missing_characters.md", font_name)
             
             ## SUBSETTER TEST
-            if generate_patch_font(missing, full_font, patch_output):
-                print("The surgical patch is ready!")
+            status, success, failed = generate_patch_font(missing, full_font, patch_output)
+            if status:
+                print("\nTEST: The surgical patch is ready!")
             
             ## SCRIPT TEST
             patch_file = "patch.ttf"
             lite_font_name = "SourceHanSansLite.ttf"
-            generate_renpy_script(missing, patch_file, lite_font_name, rpy_output)
+            log_output = "renpatch_log.json"
+            generate_renpy_script(success, failed, patch_file, lite_font_name, rpy_output, log_output)
             print("\nPipeline Complete! Drop the generated files into your game folder.")
         else:
             print("No missing characters detected. Your font is healthy!")
