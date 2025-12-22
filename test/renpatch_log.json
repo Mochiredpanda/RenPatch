@@ -1,11 +1,27 @@
 {
     "success": [
-        "é",
-        "铤",
-        "嘚"
+        {
+            "char": "é",
+            "hex": "U+00E9",
+            "name": "LATIN SMALL LETTER E WITH ACUTE"
+        },
+        {
+            "char": "嘚",
+            "hex": "U+561A",
+            "name": "CJK UNIFIED IDEOGRAPH-561A"
+        },
+        {
+            "char": "铤",
+            "hex": "U+94E4",
+            "name": "CJK UNIFIED IDEOGRAPH-94E4"
+        }
     ],
     "failed": [
-        "▸"
+        {
+            "char": "▸",
+            "hex": "U+25B8",
+            "name": "BLACK RIGHT-POINTING SMALL TRIANGLE"
+        }
     ],
     "patch_filename": "patch.ttf",
     "lite_font_filename": "SourceHanSansLite.ttf"

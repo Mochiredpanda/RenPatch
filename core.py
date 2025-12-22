@@ -1,3 +1,8 @@
+# RenPatch: A tool to patch missing characters in Ren'Py scripts.
+# Author: Mochiredpanda/Jiyuhe
+# Version: 0.1
+# License: MIT
+
 import os
 import re
 import json
@@ -75,37 +80,42 @@ def get_missing_characters(found_chars, lite_font_path):
     return missing_chars
 
 # Generate Report of Missing Characters
-def save_missing_report(missing_chars, report_path, font_name):
+def save_missing_report(missing_chars, font_name, output_dir="."):
     """
-    Generates a Markdown report of missing characters with hex codes and wiki links.
+    Generates a JSON report of missing characters in the specified directory.
+    Default: 'missing_characters_report.json' in current directory.
     """
     if not missing_chars:
         return
 
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# RenPatch: Missing Characters Report\n\n")
-        f.write("The following characters were found in your scripts but are missing from your font %s.\n\n" % font_name)
-        f.write("| Char | Hex Code | Unicode Name | Wiki Link |\n")
+    # Prepare data structure
+    json_data = []
+    sorted_chars = sorted(list(missing_chars), key=lambda x: ord(x))
 
-        # Sort by hex code
-        sorted_chars = sorted(list(missing_chars), key=lambda x: ord(x))
+    for char in sorted_chars:
+        hex_code = f"U+{ord(char):04X}"
+        try:
+            name = unicodedata.name(char)
+        except ValueError:
+            name = "Unknown Character"
 
-        for char in sorted_chars:
-            hex_code = f"{ord(char):04X}"
-            
-            # Get a human-readable name
-            #   e.g., "CJK UNIFIED IDEOGRAPH-561A"
-            try:
-                name = unicodedata.name(char)
-            except ValueError:
-                name = "Unknown Character"
+        wiki_link = f"https://www.compart.com/en/unicode/{hex_code}"
+        
+        json_data.append({
+            "char": char,
+            "hex": hex_code,
+            "name": name,
+            "wiki_link": wiki_link
+        })
 
-            # Compart links
-            wiki_link = f"[View on Compart](https://www.compart.com/en/unicode/U+{hex_code})"
-            
-            f.write(f"{char}\tU+{hex_code}\t{name}\t{wiki_link}\n")
-
-    print(f"Report generated: {report_path}")
+    # Save to JSON
+    output_path = os.path.join(output_dir, "missing_characters_report.json")
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=4)
+        print(f"Missing characters report generated: {output_path}")
+    except Exception as e:
+        print(f"Error generating missing report: {e}")
 
 ### SUBSETTER ###
 
@@ -187,9 +197,26 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
     
     ## Generate Log File ##
     if log_path:
+        # Create rich data objects
+        success_data = []
+        for char in sorted(list(success_chars), key=lambda x: ord(x)):
+            success_data.append({
+                "char": char,
+                "hex": f"U+{ord(char):04X}",
+                "name": unicodedata.name(char, "Unknown")
+            })
+            
+        failed_data = []
+        for char in sorted(list(failed_chars), key=lambda x: ord(x)):
+            failed_data.append({
+                "char": char,
+                "hex": f"U+{ord(char):04X}",
+                "name": unicodedata.name(char, "Unknown")
+            })
+
         log_data = {
-            "success": list(success_chars),
-            "failed": list(failed_chars),
+            "success": success_data,
+            "failed": failed_data,
             "patch_filename": patch_filename,
             "lite_font_filename": lite_font_filename
         }
@@ -218,8 +245,9 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
     script_lines.append("")
     script_lines.append("    # Explicitly map successfully patched font")
     for char in sorted_success:
-        hex_code = hex(ord(char))
-        script_lines.append(f"    renpatch_font = renpatch_font.add('{patch_filename}', {hex_code}, {hex_code}) # {char}")
+        hex_code_py = hex(ord(char))
+        hex_code_display = f"U+{ord(char):04X}"
+        script_lines.append(f"    renpatch_font = renpatch_font.add('{patch_filename}', {hex_code_py}, {hex_code_py}) # {char} ({hex_code_display})")
 
     # Add comments for FAILED characters
     if failed_chars:

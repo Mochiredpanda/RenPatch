@@ -39,7 +39,7 @@ if __name__ == "__main__":
             print(f"Total missing characters: {len(missing)}")
             print(f"Sample: {''.join(list(missing)[:20])}")
             # Generate Missing Report
-            save_missing_report(missing, "missing_characters.md", font_name)
+            save_missing_report(missing, font_name)
             
             ## SUBSETTER TEST
             status, success, failed = generate_patch_font(missing, full_font, patch_output)
