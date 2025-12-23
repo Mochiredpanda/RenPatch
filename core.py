@@ -1,6 +1,6 @@
 # RenPatch: A tool to patch missing characters in Ren'Py scripts.
 # Author: Mochiredpanda/Jiyuhe
-# Version: 0.1
+# Version: 0.2
 # License: MIT
 
 import os
@@ -13,6 +13,8 @@ from fontTools import subset
 import unicodedata
 
 ### SCANNER ###
+# 0.2: Optimized with Extract-Filter-Clean pipeline
+# 0.1: Using Naive guess-and-check
 def get_unique_characters(game_dir):
     """
     Scan and extract all special chars from .rpy files in the game directory.
@@ -20,11 +22,17 @@ def get_unique_characters(game_dir):
     """
     unique_chars = set()
     
-    # Regex search:
-    # 1. For all content inside double or single quotes.
-    # 2. Skip non-script common file paths (images/, audio/, music/, gui/, fonts/, etc.)
-    # TODO: Refine the scanner logic later.
-    pattern = re.compile(r'["\'](?!images/|audio/|music/|gui/|fonts/)(.*?)["\']')
+    # Single pass extraction
+    # 1. Capture triple-quoted strings first (Greedy)
+    # 2. Capture single/double quoted strings
+    string_pattern = re.compile(r'("""(.*?)"""|\'\'\'(.*?)\'\'\'|"(.*?)"|\'(.*?)\')', re.DOTALL)
+    
+    # Ren'Py specific strip
+    tag_pattern = re.compile(r'\{.*?\}') # patterns like {size=30}, {b}, etc. 
+    interpolation_pattern = re.compile(r'\[.*?\]') # patterns like [player_name]
+
+    # Heuristic pre-filtering
+    ignored_extensions = ('.png', '.jpg', '.jpeg', '.webp', '.ogg', '.mp3', '.wav', '.rpy', '.otf', '.ttf')
 
     for root, _, files in os.walk(game_dir):
         for file in files:
@@ -33,13 +41,44 @@ def get_unique_characters(game_dir):
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
-                        # Find all strings
-                        matches = pattern.findall(content)
-                        for text in matches:
+                        
+                        matches = string_pattern.findall(content)
+                        
+                        for match_tuple in matches:
+                            # The match tuple contains full match + groups. 
+                            # We want the content inside the quotes.
+                            # Groups: 
+                            # 0: Full match ("""...""" or "...")
+                            # 1: content of """..."""
+                            # 2: content of '''...'''
+                            # 3: content of "..."
+                            # 4: content of '...'
+                            
+                            # Find the non-empty group (skip group 0)
+                            text = next((m for m in match_tuple[1:] if m), None)
+                            
+                            if not text:
+                                continue
+                                
+                            # Skip likely file paths
+                            if text.lower().strip().endswith(ignored_extensions):
+                                continue
+                            if "/" in text and len(text.split()) == 1: # Single word with slash likely a path
+                                continue
+
+                            # Clean up the text
+                            # Strip Ren'Py tags
+                            text = tag_pattern.sub('', text)
+                            # Strip Interpolation
+                            text = interpolation_pattern.sub('', text)
+                            # Common escape sequences
+                            text = text.replace('\\"', '"').replace("\\'", "'").replace("\\n", "")
+                            
                             for char in text:
                                 # Ignore whitespace and control characters
-                                if not char.isspace():
+                                if not char.isspace() and char.isprintable():
                                     unique_chars.add(char)
+                                    
                 except Exception as e:
                     print(f"Error reading {file_path}: {e}")
 
