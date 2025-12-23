@@ -24,8 +24,18 @@ def get_unique_characters(game_dir):
     
     # Single pass extraction
     # 1. Capture triple-quoted strings first (Greedy)
-    # 2. Capture single/double quoted strings
-    string_pattern = re.compile(r'("""(.*?)"""|\'\'\'(.*?)\'\'\'|"(.*?)"|\'(.*?)\')', re.DOTALL)
+    # 2. Capture single/double quoted strings with backslash escape support
+    # Pattern explanation for " or ':
+    #   "          : Start quote
+    #   (          : Capture group
+    #     [^"\\]*  : Match any char except quote or backslash (Greedy)
+    #     (?:      : Non-capturing group for escaped char
+    #       \\.    : Match backslash followed by any char
+    #       [^"\\]* : Match any char except quote or backslash
+    #     )*       : Repeat 0 or more times
+    #   )          : End capture
+    #   "          : End quote
+    string_pattern = re.compile(r'("""(.*?)"""|\'\'\'(.*?)\'\'\'|"([^"\\]*(?:\\.[^"\\]*)*)"|\'([^\'\\]*(?:\\.[^\'\\]*)*)\')', re.DOTALL)
     
     # Ren'Py specific strip
     tag_pattern = re.compile(r'\{.*?\}') # patterns like {size=30}, {b}, etc. 
