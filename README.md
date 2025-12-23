@@ -1,5 +1,5 @@
 # RedPanda RenPatch (RPRP)
-<img src="icons/favicon.png" width="150" height="150" align="right" alt="RenPatch Icon">
+<img src="icons/favicon.png" width="250" height="250" align="right" alt="RenPatch Icon">
 
 **Say Bye-Bye to the "Missing Characters" (Tofu ☒) in your Ren'Py games.**
 
