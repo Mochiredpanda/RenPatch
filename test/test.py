@@ -7,7 +7,7 @@ from fontTools import subset
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 
-from core import *
+from app.core import *
 
 # --- Test Block ---
 if __name__ == "__main__":
