@@ -1,62 +1,70 @@
-# <img src="icons/favicon.png" width="50" height="50" valign="middle"> RedPanda RenPatch（RPRP）
+# RedPanda RenPatch (RPRP)
+<img src="icons/favicon.png" width="150" height="150" align="right" alt="RenPatch Icon">
 
-<img src="icons/favicon.png" width="250" height="250" alt="main icon">
+**Say Bye-Bye to the "Missing Characters" (Tofu ☒) in your Ren'Py games.**
 
-**RedPanda RenPatch(RPRP)** is a surgical font optimization tool designed specifically for Ren'Py developers. It solves the "Tofu" (missing character ☒) problem in lightweight fonts by scanning game scripts, identifying missing glyphs, and generating a tiny, high-performance font patch.
+**RedPanda RenPatch (RPRP)** is a surgical font optimization tool. It scans your scripts, finds characters your primary fonts can't handle, and generates a lightweight "patch" font along with ready-to-use `.rpy` scripts.
+
+Deliver perfect CJK (Chinese, Japanese, Korean) support without bundling massive, multi-megabyte font files in your package.
 
 ---
 
-RedPanda RenPatch（RPRP）是一个为 Ren'Py 引擎设计的字体修复工具，以解决独立游戏开发中的☒缺字问题。RenPatch可以自动扫描游戏脚本文件、对比字库索引来准提取缺失字符，生成体积极小的补丁字库及配套集成的`.rpy`脚本，以供开发者进行字体校准和优化。开发者无需内置更大的完整版字体文件，即可实现更好的跨语言文字显示。
+**RedPanda RenPatch（RPRP）** 是一个为 Ren'Py 引擎设计的字体修复工具，以解决独立游戏开发中的☒缺字问题。RenPatch可以自动扫描游戏脚本文件、对比字库索引来准提取缺失字符，生成体积极小的补丁字库及配套集成的`.rpy`脚本，供开发者进行字体校准和优化。分发的游戏包无需内置臃肿的完整版字体，即可实现更好的跨语言文字显示。
+
+Current Version: **v0.2** Core Logic / Mannual Mode
 
 ---
 
-## Features
-### Current Phase: Core Logic / Mannual Mode
+## **Feature** 
 
-The following core functionalities are currently implemented in `core.py`:
+### GUI Mode (V1.0 In Development)
+1. **Patch Wizard Mode**: Drop in with your scripts and I will take over from there.
+2. **Developer Workbench Mode**: Access more advanced features, including *Font Subsetting Tool*, *Donor Font Caliberation*, *Localization Caliberation*, and more.
 
-- **Smart Script Scanner**: Recursively scans `.rpy` files to extract unique characters while filtering out code keywords and file paths.
-- **Font Introspection**: Uses `fontTools` to analyze the `cmap` of "Lite" fonts and identify exactly which characters the font cannot render.
-- **Surgical Subsetting**: Extracts only the missing glyphs from a "Full" donor font, resulting in a `patch.ttf` often smaller than 20KB.
-- **Missing Character Reporter**: Generates a detailed Markdown report with Hex codes and direct links to Unicode wikis (Compart) for every missing character.
-- **Automated Ren'Py Integration**: Generates a drop-in `.rpy` script with explicit `FontGroup` mapping to ensure Ren'Py prioritizes the patch for problematic characters.
+### Current Phase: Core Logic
 
-### How to Use
+1.  **Scan**: RenPatch reads your game directory to find all characters used in your game and localization `.rpy` scripts.
+2.  **Compare**: It checks your "Primary Lite Font" to see what's missing.
+3.  **Patch**: It extracts *only* the missing glyphs from a "Donor Font" and make a `patch.ttf`. It also generates a patch report for developers who wants to config mannually.
+4.  **Integrate**: It generates a drop-in `font_patch.rpy` script with explicit `FontGroup` mapping for your Ren'Py prioritizes the patch for problematic characters.
 
-Currently, the tool operates as a Python backend. See more on the `test.py` file as example:
+---
+
+### **How to Use**
+
+*Currently requires Python installed. (GUI App coming soon!)*
 
 1. Place your game project in a directory.
-2. Ensure you have your "Lite" font (e.g., `SourceHanSansLite.ttf`) and a "Full" donor font.
+2. Prepare your primary lite font (e.g., `SourceHanSansLite.ttf`) font. you have your "Lite" font (e.g., `SourceHanSansLite.ttf`).
 3. Run the pipeline in `core.py`:
    ```python
    # 1. Scans scripts
    # 2. Compares fonts
-   # 3. Generates patch.ttf
+   # 3. Generates patch.ttf and reports
    # 4. Generates renpatch_init.rpy
-4. Drop patch.ttf and renpatch_init.rpy into your game/ folder.
+4. Drop `patch.ttf` and `renpatch_init.rpy` into your `game/` folder. Or config `renpatch_init.rpy` mannually in your `options.rpy`.
+5. Update your `gui.rpy` and localization scripts to use `renpatch_style` font group.
 
-5. Update gui.rpy to use renpatch_style.
+---
 
-## Future Versions
+### **Changelog**
 
-Modern GUI (Coming Soon)
-- A lightweight, cross-platform app built with Flet.
-- Modern Drag & Drop interface for game folders and font files.
-- Real-time status console and "One-Click Patch" workflow.
-- Designed for RenPy developers and screenwriters to fix missing character problem without any Python knowledges.
+#### **v0.2 (Current)** - *Scanner Update*
+*   **Accelerated scanning pipeline**. More robust regex scanner for triple-quoted multi-line strings and other escaped quotes; more efficient filtering to strip Ren'Py tags (`{size=30}`), interpolation variables (`[player_name]`), and file paths to prevent ghost chars.
+*   **Better Logging**. Generates JSON reports on missing characters and a detailed Ren'Py integration script with Hex/Unicode comments. Ready for future features in Developer Workbench Mode.
 
-Turbo Mode (Coming Soon)
-- Full Custom Subsetting: Instead of a patch, generate a single, perfectly optimized font containing only the characters used in your game.
-- Largely reduce the font size in your game packages.
-- Built high-performance font solution for your Ren'Py projects.
+#### **v0.1** - *Concept Prototype*
+*   Basic script scanning and font subsetting using `fontTools`.
+*   Manual patching logic.
 
-Multi-language Optimization
-- Specialized logic for Korean/Japanese support.
-- Drastically reduce font bloat in international releases.
-- Add multi-language font solution to your Ren'Py projects.
+---
 
-## License
+### **Acknowledgements & License**
 
-MIT License
+*   **License**: MIT License
+*   **Libraries Used**:
+    *   [`fontTools`](https://github.com/fonttools/fonttools): The backbone of our font analysis and subsetting.
+    *   [`Flet`](https://flet.dev): For the GUI version.
 
+---
 Copyright (c) 2025 Mochiredpanda / Jiyu He
