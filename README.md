@@ -1,5 +1,5 @@
 # RedPanda RenPatch (RPRP)
-<img src="icons/favicon.png" width="250" height="250" align="right" alt="RenPatch Icon">
+<img src="assets/icons/favicon.png" width="250" height="250" align="right" alt="RenPatch Icon">
 
 **Say Bye-Bye to the "Missing Characters" (Tofu ☒) in your Ren'Py games.**
 
@@ -13,13 +13,16 @@ Deliver perfect CJK (Chinese, Japanese, Korean) support without bundling massive
 
 Current Version: **v0.2** Core Logic / Mannual Mode
 
+**v1.0** GUI App In Development
+- App & UI Structure Updated
+
 ---
 
 ## **Feature** 
 
 ### GUI Mode (V1.0 In Development)
 1. **Patch Wizard Mode**: Drop in with your scripts and I will take over from there.
-2. **Developer Workbench Mode**: Access more advanced features, including *Font Subsetting Tool*, *Donor Font Caliberation*, *Localization Caliberation*, and more.
+2. **(In Future Version) Developer Workbench Mode**: Access more advanced features, including *Font Subsetting Tool*, *Donor Font Caliberation*, *Localization Caliberation*, and more.
 
 ### Current Phase: Core Logic
 
