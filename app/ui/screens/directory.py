@@ -2,28 +2,51 @@ import flet as ft
 from app.ui.theme import current_theme as theme
 
 class DirectoryScreen(ft.Container):
-    def __init__(self, on_browse_click, on_start_scan_click, selected_path=None):
+    def __init__(self, on_browse_click, on_start_scan_click, on_back_click=None, selected_path=None):
         super().__init__()
         self.on_browse_click = on_browse_click
         self.on_start_scan_click = on_start_scan_click
+        self.on_back_click = on_back_click
         self.selected_path = selected_path
         self.expand = True
         self.padding = 32
-        self.bgcolor = ft.colors.WHITE
+        self.bgcolor = "white"
 
     def build(self):
-        # Header
+        # Header Row with Back Button
+        header_row = ft.Row(
+            controls=[
+                ft.Column(
+                    controls=[
+                        ft.Text("Select Project Directory", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            width=50, 
+                            height=3, 
+                            bgcolor="#3498db", 
+                            border_radius=1, 
+                            margin=ft.margin.only(top=4)
+                        )
+                    ],
+                    spacing=0
+                ),
+                ft.TextButton(
+                    "Back", 
+                    icon="arrow_back", 
+                    on_click=self.on_back_click,
+                    visible=bool(self.on_back_click)
+                )
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.START
+        )
+
         header = ft.Column(
             controls=[
-                ft.Container(
-                    content=ft.Text("Step 1: Select Project Directory", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
-                    border=ft.border.only(bottom=ft.BorderSide(2, "#3498db")),
-                    padding=ft.padding.only(bottom=8),
-                    width=float("inf")
-                ),
-                ft.Text("Choose the folder containing your RenPy game package files.", color="#7f8c8d", size=13),
+                header_row,
+                ft.Text("Choose the folder containing your Ren'Py game package files.", color="#7f8c8d", size=13),
+                ft.Container(height=24) # Padding requested by user
             ],
-            spacing=12
+            spacing=8
         )
 
         # File Picker Area
@@ -37,7 +60,7 @@ class DirectoryScreen(ft.Container):
                     weight=ft.FontWeight.BOLD
                 ),
                 ft.Text(
-                    "Selected Directory" if self.selected_path else "Select your RenPy project directory", 
+                    "Selected Directory" if self.selected_path else "Select your Ren'Py project directory", 
                     size=12, 
                     color="#7f8c8d"
                 )
@@ -54,7 +77,7 @@ class DirectoryScreen(ft.Container):
             bgcolor="#e8f8f0" if self.selected_path else "white",
             on_click=self.on_browse_click,
             ink=True,
-            mouse_cursor=ft.MouseCursor.CLICK,
+            
             margin=ft.margin.only(bottom=20)
         )
 

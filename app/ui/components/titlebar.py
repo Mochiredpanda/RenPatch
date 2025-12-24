@@ -1,46 +1,47 @@
 import flet as ft
 from app.ui.theme import current_theme as theme
 
-class TitleBar(ft.UserControl):
+class TitleBar(ft.Container):
     def __init__(self, title="RenPatch Package Scanner & Patcher", on_close=None, on_minimize=None):
         super().__init__()
         self.title_text = title
         self.on_close = on_close
+        self.on_minimize = on_minimize  # Store externally provided callbacks if needed, though we use methods below
+
+        # Initialize Container Properties
+        self.gradient = ft.LinearGradient(
+            begin=ft.alignment.top_center,
+            end=ft.alignment.bottom_center,
+            colors=[theme.colors.title_bar_gradient_start, theme.colors.title_bar_gradient_end],
+        )
+        self.padding = ft.padding.symmetric(horizontal=12, vertical=8)
+        self.border = ft.border.only(bottom=ft.BorderSide(1, theme.colors.title_bar_border))
         
-    def build(self):
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    # Title
-                    ft.Row(
-                        controls=[
-                            ft.Text("🎮", size=16),
-                            ft.Text(self.title_text, size=13, color=theme.colors.title_bar_text),
-                        ],
-                        alignment=ft.MainAxisAlignment.START,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=8
-                    ),
-                    # Window Controls (Fake for now, but actionable)
-                    ft.Row(
-                        controls=[
-                            self._build_window_btn("_", self.minimize_window),
-                            self._build_window_btn("□", None), # Maximize disabled for fixed size
-                            self._build_window_btn("×", self.close_window),
-                        ],
-                        spacing=2
-                    )
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            gradient=ft.LinearGradient(
-                begin=ft.alignment.top_center,
-                end=ft.alignment.bottom_center,
-                colors=[theme.colors.title_bar_gradient_start, theme.colors.title_bar_gradient_end],
-            ),
-            padding=ft.padding.symmetric(horizontal=12, vertical=8),
-            border=ft.border.only(bottom=ft.BorderSide(1, theme.colors.title_bar_border)),
+        # Build Content
+        self.content = ft.Row(
+            controls=[
+                # Title
+                ft.Row(
+                    controls=[
+                        ft.Text("🎮", size=16),
+                        ft.Text(self.title_text, size=13, color=theme.colors.title_bar_text),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=8
+                ),
+                # Window Controls
+                ft.Row(
+                    controls=[
+                        self._build_window_btn("_", self.minimize_window),
+                        self._build_window_btn("□", None), # Maximize disabled for fixed size
+                        self._build_window_btn("×", self.close_window),
+                    ],
+                    spacing=2
+                )
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def _build_window_btn(self, text, on_click):

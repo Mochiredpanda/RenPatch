@@ -6,7 +6,7 @@ class ScanningScreen(ft.Container):
         super().__init__()
         self.expand = True
         self.padding = 32
-        self.bgcolor = ft.colors.WHITE
+        self.bgcolor = "white"
         
         # UI Elements
         self.status_text = ft.Text("Initializing scanner...", color="#555555", size=12)
@@ -30,7 +30,7 @@ class ScanningScreen(ft.Container):
                     border=ft.border.all(1, "#95a5a6"),
                     border_radius=3,
                     bgcolor="white",
-                    shadow=ft.BoxShadow(blur_radius=3, color=ft.colors.with_opacity(0.1, ft.colors.BLACK), offset=ft.Offset(0, 1), blur_style=ft.ShadowBlurStyle.INNER)
+                    shadow=ft.BoxShadow(blur_radius=3, color="#1A000000", offset=ft.Offset(0, 1), blur_style=ft.ShadowBlurStyle.INNER)
                 ),
                 
                 ft.Container(height=8),
