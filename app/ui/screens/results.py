@@ -1,5 +1,6 @@
 import flet as ft
 from app.ui.theme import current_theme as theme
+from app.ui.components.font_table import FontTable
 
 class ResultsScreen(ft.Container):
     def __init__(self, on_wizard_click, on_manual_click):
@@ -11,130 +12,78 @@ class ResultsScreen(ft.Container):
         self.bgcolor = "white"
         
         # Data Placeholders
-        self.files_scanned = 0
-        self.issues_found = 0
-        self.unique_chars = 0
-        self.missing_chars = 0
+        self.font_data = [] # List of dicts
+        self.global_stats = {"files": 0, "unique_chars": 0}
 
-    def update_stats(self, files, issues, unique, missing):
-        self.files_scanned = files
-        self.issues_found = issues
-        self.unique_chars = unique
-        self.missing_chars = missing
+    def update_data(self, global_stats, font_health_data):
+        self.global_stats = global_stats
+        self.font_data = font_health_data
         
-        # Rebuild table rows
-        # TODO: A cleaner way would be to just update Control values if we kept references
+        # Rebuild content with new data
         self.content = self._build_content()
-        self.update()
+        # self.update() # Removed to prevent error if not mounted yet
 
     def build(self):
         self.content = self._build_content()
         return self
 
     def _build_content(self):
+        # Calculate summary
+        total_fonts = len(self.font_data)
+        critical_fonts = sum(1 for f in self.font_data if f['missing_count'] > 0)
+        
         return ft.Column(
             controls=[
                 # Header
                 ft.Container(
-                    content=ft.Text("Scan Results", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
+                    content=ft.Text("Font Health Dashboard", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
                     border=ft.border.only(bottom=ft.BorderSide(2, "#3498db")),
                     padding=ft.padding.only(bottom=8),
                     width=float("inf")
                 ),
-                ft.Text("✓ Scan completed successfully", color="#27ae60", weight=ft.FontWeight.BOLD, size=13),
-                ft.Container(height=12),
                 
-                # Stats Table
-                ft.DataTable(
-                    width=float("inf"),
-                    bgcolor="white",
-                    border=ft.border.all(1, "#bdc3c7"),
-                    vertical_lines=ft.border.BorderSide(1, "#bdc3c7"),
-                    horizontal_lines=ft.border.BorderSide(1, "#bdc3c7"),
-                    columns=[
-                        ft.DataColumn(ft.Text("Category", weight=ft.FontWeight.BOLD)),
-                        ft.DataColumn(ft.Text("Count", weight=ft.FontWeight.BOLD)),
-                        ft.DataColumn(ft.Text("Status", weight=ft.FontWeight.BOLD)),
+                # Global Summary
+                ft.Row(
+                    controls=[
+                        self._summary_card("Files Scanned", self.global_stats['files'], "#3498db"),
+                        self._summary_card("Unique Chars", self.global_stats['unique_chars'], "#9b59b6"),
+                        self._summary_card("Fonts Found", total_fonts, "#e67e22"),
+                        self._summary_card("Issues Detected", critical_fonts, "#e74c3c" if critical_fonts > 0 else "#27ae60"),
                     ],
-                    rows=[
-                        ft.DataRow(cells=[
-                            ft.DataCell(ft.Text("Files Scanned")),
-                            ft.DataCell(ft.Text(str(self.files_scanned))),
-                            ft.DataCell(self._badge("Complete", "success")),
-                        ]),
-                         ft.DataRow(cells=[
-                            ft.DataCell(ft.Text("Unique Characters")),
-                            ft.DataCell(ft.Text(str(self.unique_chars))),
-                            ft.DataCell(self._badge("Analyzed", "success")),
-                        ]),
-                        ft.DataRow(cells=[
-                            ft.DataCell(ft.Text("Missing Characters")),
-                            ft.DataCell(ft.Text(str(self.missing_chars))),
-                            ft.DataCell(self._badge("Needs Patching", "error") if self.missing_chars > 0 else self._badge("OK", "success")),
-                        ]),
-                    ]
+                    spacing=16
                 ),
                 
                 ft.Container(height=24),
                 
-                # Action Buttons
-                ft.Text("Choose Action:", size=16, weight=ft.FontWeight.BOLD, color="#2c3e50"),
-                ft.Row(
-                    controls=[
-                        self._build_action_card("✨", "Automatic Fix", "Let the wizard handle everything automatically", "#27ae60", self.on_wizard_click),
-                        self._build_action_card("🔧", "Manual Configuration", "Advanced options with full control", "#3498db", self.on_manual_click),
-                    ],
-                    spacing=16
-                )
+                ft.Text("Detected Fonts", size=16, weight=ft.FontWeight.BOLD, color="#2c3e50"),
+                ft.Text("Select a font to patch or inspect its missing characters.", size=12, color="#7f8c8d"),
+                
+                # Font Table
+                FontTable(
+                    font_data_list=self.font_data,
+                    on_auto_fix_click=self.on_wizard_click,
+                    on_inspect_click=self.on_manual_click
+                ) if self.font_data else ft.Container(
+                    content=ft.Text("No fonts found in project directory.", italic=True, color="#95a5a6"),
+                    padding=20,
+                    alignment=ft.alignment.center
+                ),
             ],
             scroll=ft.ScrollMode.AUTO
         )
 
-    def _badge(self, text, status):
-        color = "#155724"
-        bg = "#d4edda"
-        border = "#c3e6cb"
-        
-        if status == "warning":
-            color = "#856404"
-            bg = "#fff3cd"
-            border = "#ffeaa7"
-        elif status == "error":
-            color = "#721c24"
-            bg = "#f8d7da"
-            border = "#f5c6cb"
-            
-        return ft.Container(
-            content=ft.Text(text, size=11, weight=ft.FontWeight.BOLD, color=color),
-            bgcolor=bg,
-            border=ft.border.all(1, border),
-            border_radius=3,
-            padding=ft.padding.symmetric(horizontal=8, vertical=2)
-        )
-
-    def _build_action_card(self, icon, title, subtitle, color, on_click):
+    def _summary_card(self, label, value, color):
         return ft.Container(
             content=ft.Column(
                 controls=[
-                    ft.Text(icon, size=36),
-                    ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color="#2c3e50"),
-                    ft.Text(subtitle, size=12, color="#7f8c8d", text_align=ft.TextAlign.CENTER)
+                    ft.Text(str(value), size=20, weight="bold", color=color),
+                    ft.Text(label, size=11, color="#7f8c8d")
                 ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER
+                spacing=2
             ),
-            width=200,
-            padding=24,
-            border=ft.border.all(2, "#95a5a6"),
+            bgcolor="#f8f9fa",
+            border=ft.border.all(1, "#ecf0f1"),
             border_radius=4,
-            bgcolor="white",
-            on_click=on_click,
-            on_hover=lambda e: self._on_card_hover(e, color),
-            ink=True,
-            data=color # Store color for hover event
+            padding=12,
+            width=120
         )
-
-    def _on_card_hover(self, e, color):
-        e.control.border = ft.border.all(2, color if e.data == "true" else "#95a5a6")
-        e.control.bgcolor = "#f8f9fa" if e.data == "true" else "white"
-        e.control.update()

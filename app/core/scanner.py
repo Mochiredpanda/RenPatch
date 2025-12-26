@@ -80,3 +80,64 @@ def get_unique_characters(game_dir):
                     print(f"Error reading {file_path}: {e}")
 
     return unique_chars
+
+def find_fonts(base_dir):
+    """
+    Recursively find all .ttf and .otf files in the directory.
+    Returns a list of absolute paths.
+    """
+    font_files = []
+    for root, _, files in os.walk(base_dir):
+        for file in files:
+            if file.lower().endswith(('.ttf', '.otf')):
+                font_files.append(os.path.join(root, file))
+    return font_files
+
+def analyze_font_role(base_dir, font_path):
+    """
+    Heuristics to determine the role of a font (Dialogue, UI, unknown).
+    Scans `gui.rpy` if available.
+    """
+    font_filename = os.path.basename(font_path)
+    role = "Unknown"
+    confidence = "Low"
+
+    # 1. Check file path conventions
+    if "gui" in font_path.lower() or "interface" in font_path.lower():
+        role = "UI"
+        confidence = "Medium"
+    if "game" in font_path.lower() and "fonts" not in font_path.lower():
+         # Often fonts in root game dir are used for dialogue if custom
+         pass
+
+    # 2. Check gui.rpy definitions
+    # We look for gui.text_font = "..." and gui.interface_text_font = "..."
+    # This is a robust check.
+    gui_rpy_path = None
+    for root, _, files in os.walk(base_dir):
+        if "gui.rpy" in files:
+            gui_rpy_path = os.path.join(root, "gui.rpy")
+            break
+            
+    if gui_rpy_path:
+        try:
+            with open(gui_rpy_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+                # Check for Dialogue Font
+                # gui.text_font = "gui/font/SourceHanSansLite.ttf"
+                if re.search(f'gui\.text_font\s*=\s*[\'"].*{re.escape(font_filename)}[\'"]', content):
+                    return "Dialogue", "High"
+                
+                # Check for Interface Font
+                if re.search(f'gui\.interface_text_font\s*=\s*[\'"].*{re.escape(font_filename)}[\'"]', content):
+                    return "UI", "High"
+                
+                # Check for Name Font (often same as Interface or Dialogue)
+                if re.search(f'gui\.name_text_font\s*=\s*[\'"].*{re.escape(font_filename)}[\'"]', content):
+                     return "Name/UI", "Medium"
+
+        except Exception as e:
+            print(f"Error reading gui.rpy: {e}")
+
+    return role, confidence

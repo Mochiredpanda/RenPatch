@@ -32,12 +32,17 @@ class RenPatchApp(ft.Column):
         # Initialize FilePicker
         self.file_picker = ft.FilePicker(on_result=self.on_directory_selected)
         self.page.overlay.append(self.file_picker)
+        self.page.update()
+        
+        # Configure Global File Drop
+        self.page.on_file_drop = self.on_file_drop
         
         # Initialize Screens
         self.screens = {
             "welcome": WelcomeScreen(on_start_click=lambda e: self.navigate_to("directory")),
             "directory": DirectoryScreen(
-                on_browse_click=lambda e: self.file_picker.get_directory_path(),
+                on_browse_click=self.open_file_picker,
+                on_directory_drop=lambda e: None, # Handled globally by page.on_file_drop
                 on_start_scan_click=self.start_scanning,
                 on_back_click=lambda e: self.navigate_to("welcome")
             ),
@@ -129,6 +134,10 @@ class RenPatchApp(ft.Column):
         
         self.update()
 
+    def open_file_picker(self, e):
+        print("DEBUG: Browse clicked. Opening FilePicker...")
+        self.file_picker.get_directory_path()
+
     def on_directory_selected(self, e: ft.FilePickerResultEvent):
         if e.path:
             # Update Directory Screen State
@@ -137,6 +146,25 @@ class RenPatchApp(ft.Column):
             # Force rebuild of directory screen inner content
             dir_screen.content = dir_screen.build().content 
             dir_screen.update()
+
+    def on_file_drop(self, e):
+        if self.current_screen == "directory":
+            if not e.files:
+                return
+            
+            # Use the first dropped item
+            file_path = e.files[0].path
+            
+            # Check if it is a directory
+            if os.path.isdir(file_path):
+                # Update Directory Screen State
+                dir_screen = self.screens["directory"]
+                dir_screen.selected_path = file_path
+                dir_screen.content = dir_screen.build().content 
+                dir_screen.update()
+            else:
+                # TODO: Show error that it must be a directory
+                print("Dropped item is not a directory")
 
     def start_scanning(self, e):
         self.navigate_to("scanning")
@@ -150,35 +178,48 @@ class RenPatchApp(ft.Column):
             # 1. Scanning Files
             scan_screen.set_status("Scanning Ren'Py script files...")
             scan_screen.set_progress(0.1)
-            time.sleep(0.5) # UI pacing
+            time.sleep(0.5) 
             
             unique_chars = scanner.get_unique_characters(directory)
             scan_screen.set_status(f"Found {len(unique_chars)} unique characters...")
-            scan_screen.set_progress(0.5)
+            scan_screen.set_progress(0.3)
             
-            # 2. Font Analysis
-            scan_screen.set_status("Analyzing fonts...")
+            # 2. Heuristic Font Analysis
+            scan_screen.set_status("Locating project fonts...")
+            font_files = scanner.find_fonts(directory)
             
-            # TODO: Better Font Selection Strategy
-            # For now, we look for 'SourceHanSansLite.ttf' in the game dir or commonly used paths
-            # If not found, we can't calculate missing chars accurately without user input
-            lite_font_path = None
-            for root, _, files in os.walk(directory):
-                if "SourceHanSansLite.ttf" in files:
-                    lite_font_path = os.path.join(root, "SourceHanSansLite.ttf")
-                    break
+            # Prepare data
+            font_health_data = []
             
-            missing_chars = set()
-            if lite_font_path:
-                scan_screen.set_status(f"Comparing with {os.path.basename(lite_font_path)}...")
-                missing_chars = patcher.get_missing_characters(unique_chars, lite_font_path)
+            total_fonts = len(font_files)
+            processed_fonts = 0
+            
+            if not font_files:
+                scan_screen.set_status("No fonts found in project.")
+                time.sleep(1)
             else:
-                # Fallback / Warning
-                print("Warning: SourceHanSansLite.ttf not found. Skipping missing char calculation.")
-                # We optionally could treat ALL as missing or NONE. 
-                # For now let's assume 0 missing if we can't find the font, but flag it?
-                pass
-                
+                for font_path in font_files:
+                    filename = os.path.basename(font_path)
+                    scan_screen.set_status(f"Analyzing {filename}...")
+                    
+                    # Determine Role
+                    role, confidence = scanner.analyze_font_role(directory, font_path)
+                    
+                    # Calculate Health
+                    missing_chars = patcher.get_missing_characters(unique_chars, font_path)
+                    
+                    font_health_data.append({
+                        "file_path": font_path,
+                        "role": role,
+                        "confidence": confidence,
+                        "missing_count": len(missing_chars),
+                        "total_chars": len(unique_chars),
+                        "missing_set": missing_chars # Store for later patching
+                    })
+                    
+                    processed_fonts += 1
+                    scan_screen.set_progress(0.3 + (0.6 * (processed_fonts / total_fonts)))
+
             scan_screen.set_progress(0.9)
             time.sleep(0.5)
             
@@ -193,28 +234,28 @@ class RenPatchApp(ft.Column):
             # Count rpy files for stats
             rpy_count = sum(1 for root, _, files in os.walk(directory) for f in files if f.endswith('.rpy'))
             
-            results_screen.update_stats(
-                files=rpy_count, 
-                issues=len(missing_chars), 
-                unique=len(unique_chars), 
-                missing=len(missing_chars)
-            )
+            global_stats = {
+                "files": rpy_count,
+                "unique_chars": len(unique_chars)
+            }
             
-            # Store data for next steps
+            results_screen.update_data(global_stats, font_health_data)
+            
+            # Store data for wizard usage
             self.scan_data = {
                 "directory": directory,
-                "missing_chars": missing_chars,
                 "unique_chars": unique_chars,
-                "lite_font_path": lite_font_path
+                "fonts": font_health_data
             }
             
             # Navigate
             self.navigate_to("results")
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"Scan Error: {e}")
             scan_screen.set_status(f"Error: {e}")
-            # TODO: Show error UI
 
     def minimize(self, e):
         self.page.window_minimized = True
