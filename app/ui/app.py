@@ -16,26 +16,26 @@ from app.ui.screens.results import ResultsScreen
 class RenPatchApp(ft.Column):
     def __init__(self, page: ft.Page):
         super().__init__()
-        self.page = page
+        # self.page = page # Removed to avoid AttributeError with ft.Control.page property
         self.expand = True
         self.spacing = 0
         
         # Configure Window - System Frame Enabled
-        self.page.window_frameless = False # Enabled system title bar
-        # self.page.window_bgcolor = "#00000000" # Not needed for system frame
-        self.page.bgcolor = theme.colors.window_bg
-        self.page.window_min_width = 800
-        self.page.window_min_height = 600
-        self.page.title = "RedPanda RenPatch" # Set Window Title
-        self.page.window_icon = "icons/favicon.png" # Attempt to set window/dock icon
+        page.window_frameless = False # Enabled system title bar
+        # page.window_bgcolor = "#00000000" # Not needed for system frame
+        page.bgcolor = theme.colors.window_bg
+        page.window_min_width = 800
+        page.window_min_height = 600
+        page.title = "RedPanda RenPatch" # Set Window Title
+        page.window_icon = "icons/favicon.png" # Attempt to set window/dock icon
         
         # Initialize FilePicker
         self.file_picker = ft.FilePicker(on_result=self.on_directory_selected)
-        self.page.overlay.append(self.file_picker)
-        self.page.update()
+        page.overlay.append(self.file_picker)
+        page.update()
         
         # Configure Global File Drop
-        self.page.on_file_drop = self.on_file_drop
+        page.on_file_drop = self.on_file_drop
         
         # Initialize Screens
         self.screens = {

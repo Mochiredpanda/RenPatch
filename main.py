@@ -6,4 +6,9 @@ def main(page: ft.Page):
     page.add(app)
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="assets")
+    # app() is deprecated since 0.70, use run() instead
+    # We check for run() availability for compatibility
+    if hasattr(ft, 'run'):
+        ft.run(target=main, assets_dir="assets")
+    else:
+        ft.app(target=main, assets_dir="assets")
