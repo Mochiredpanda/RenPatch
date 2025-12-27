@@ -133,7 +133,7 @@ class DirectoryScreen(ft.Container):
         # Update Input (if not user typing)
         if self.path_input.value != path:
              self.path_input.value = path
-
+        
         # Update Button
         self.scan_btn.bgcolor = theme.colors.button_gradient_end
         self.scan_btn.gradient = ft.LinearGradient(
