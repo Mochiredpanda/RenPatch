@@ -141,30 +141,26 @@ class RenPatchApp(ft.Column):
     def on_directory_selected(self, e: ft.FilePickerResultEvent):
         if e.path:
             # Update Directory Screen State
-            dir_screen = self.screens["directory"]
-            dir_screen.selected_path = e.path
-            # Force rebuild of directory screen inner content
-            dir_screen.content = dir_screen.build().content 
-            dir_screen.update()
+            self.screens["directory"].set_path(e.path)
+            self.page.update()
 
     def on_file_drop(self, e):
         if self.current_screen == "directory":
             if not e.files:
                 return
             
-            # Use the first dropped item
+            # Use the first dropped item's path string
             file_path = e.files[0].path
             
             # Check if it is a directory
             if os.path.isdir(file_path):
-                # Update Directory Screen State
-                dir_screen = self.screens["directory"]
-                dir_screen.selected_path = file_path
-                dir_screen.content = dir_screen.build().content 
-                dir_screen.update()
+                # Update Directory Screen State via public method
+                self.screens["directory"].set_path(file_path)
             else:
-                # TODO: Show error that it must be a directory
-                print("Dropped item is not a directory")
+                # Show error feedback to user
+                self.page.snack_bar = ft.SnackBar(ft.Text("Please drop a directory, not a file."))
+                self.page.snack_bar.open = True
+                self.page.update()
 
     def start_scanning(self, e):
         self.navigate_to("scanning")

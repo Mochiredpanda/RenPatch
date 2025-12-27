@@ -32,8 +32,7 @@ class DirectoryScreen(ft.Container):
              height=40,
              content_padding=10,
              on_change=self._manual_path_change,
-             border_color="#bdc3c7",
-             on_click=lambda e: e.control.focus()
+             border_color="#bdc3c7"
         )
         
         # Picker Container
@@ -43,8 +42,6 @@ class DirectoryScreen(ft.Container):
                     self.status_icon,
                     self.status_text,
                     ft.Text("Select your Ren'Py project directory", size=12, color="#7f8c8d"),
-                    ft.Container(height=10),
-                    self.path_input
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=6
@@ -75,7 +72,7 @@ class DirectoryScreen(ft.Container):
         
         # Apply initial state if path exists
         if self.selected_path:
-            self._update_ui_state(self.selected_path)
+            self.set_path(self.selected_path)
 
     def _build_layout(self):
         # Header Row
@@ -108,7 +105,13 @@ class DirectoryScreen(ft.Container):
                 ft.Container(height=24),
                 ft.Container(
                     content=ft.Column(
-                        controls=[self.picker_box, self.scan_btn],
+                        controls=[
+                            self.picker_box, 
+                            ft.Container(height=10),
+                            self.path_input,
+                            ft.Container(height=20),
+                            self.scan_btn
+                        ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER
                     ),
                     expand=True,
@@ -117,8 +120,8 @@ class DirectoryScreen(ft.Container):
             ]
         )
 
-    def _update_ui_state(self, path):
-        """Updates UI elements based on valid path"""
+    def set_path(self, path):
+        """Updates UI elements based on a valid directory path"""
         self.selected_path = path
         
         # Update Picker Box
@@ -142,39 +145,13 @@ class DirectoryScreen(ft.Container):
         self.scan_btn.disabled = False
         self.scan_btn.opacity = 1.0
         
-        # Call updates if mounted (check via page property or try/except)
-        # Safe to update individual controls
+        # Call updates if mounted
         try:
-             self.status_icon.update()
-             self.status_text.update()
-             self.picker_box.update()
-             self.scan_btn.update()
-             self.path_input.update()
+            self.update()
         except:
-             pass # Not mounted yet
-
-    def _manual_path_change(self, e):
-        path = e.control.value
-        if os.path.isdir(path):
-            self._update_ui_state(path)
-        else:
-            # Revert to invalid state if needed, or just keep disabled
             pass
 
-    # External update method called by app.py on drop/pickle
-    # We can just re-use _update_ui_state if we expose a setter,
-    # but currently app.py sets self.selected_path and rebuilds.
-    # We should override build() to behave? 
-    # Or app.py should call `dir_screen.set_path(path)` instead of full rebuild.
-    # For now, adhering to app.py's current logic (rebuilding content) is fine,
-    # but ideally we modify app.py later to use specific update methods.
-    
-    def build(self):
-        # Compatibility with app.py's logic: 
-        # dir_screen.content = dir_screen.build().content
-        # We return self, but app.py expects a control with .content?
-        # app.py does: dir_screen.content = dir_screen.build().content
-        # If build() returns a Column, that works.
-        # But this class IS a Container.
-        # Re-returning the layout Column is safest for app.py's current crude rebuild logic.
-        return self._build_layout()
+    def _manual_path_change(self, e):
+        path = e.control.value.strip()
+        if os.path.isdir(path):
+            self.set_path(path)
