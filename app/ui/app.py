@@ -28,6 +28,26 @@ class RenPatchApp(ft.Column):
         page.window_min_height = 600
         page.title = "RedPanda RenPatch" # Set Window Title
         page.window_icon = "icons/favicon.png" # Attempt to set window/dock icon
+
+        # Check for Administrator Privileges (Windows Only)
+        try:
+             import ctypes
+             if os.name == 'nt' and ctypes.windll.shell32.IsUserAnAdmin():
+                 print("WARNING: Running as Administrator on Windows. Drag-and-Drop will be blocked by UIPI.")
+                 page.open(
+                     ft.AlertDialog(
+                         title=ft.Text("Warning: Running as Administrator"),
+                         content=ft.Text(
+                             "You are running RenPatch as an Administrator.\n\n"
+                             "Windows security policies (UIPI) block dragging files from Explorer (running as user) "
+                             "into an Admin application.\n\n"
+                             "Please restart RenPatch as a normal user to use Drag-and-Drop, or use the 'Browse' button instead."
+                         ),
+                         actions=[ft.TextButton("I Understand", on_click=lambda e: page.close(page.dialog))]
+                     )
+                 )
+        except Exception as e:
+            print(f"Error checking admin status: {e}")
         
         # Initialize FilePicker
         self.file_picker = ft.FilePicker(on_result=self.on_directory_selected)
@@ -136,7 +156,15 @@ class RenPatchApp(ft.Column):
 
     def open_file_picker(self, e):
         print("DEBUG: Browse clicked. Opening FilePicker...")
-        self.file_picker.get_directory_path()
+        try:
+            self.file_picker.get_directory_path()
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            print(f"Error opening file picker: {ex}")
+            self.page.snack_bar = ft.SnackBar(ft.Text(f"Error opening file picker: {ex}"))
+            self.page.snack_bar.open = True
+            self.page.update()
 
     def on_directory_selected(self, e: ft.FilePickerResultEvent):
         if e.path:
@@ -145,6 +173,7 @@ class RenPatchApp(ft.Column):
             self.page.update()
 
     def on_file_drop(self, e):
+        print(f"DEBUG: File dropped. Name: {e.name}, Path: {e.data}")
         if self.current_screen == "directory":
             if not e.files:
                 return
