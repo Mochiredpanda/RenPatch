@@ -12,6 +12,7 @@ from app.ui.screens.welcome import WelcomeScreen
 from app.ui.screens.directory import DirectoryScreen
 from app.ui.screens.scanning import ScanningScreen
 from app.ui.screens.results import ResultsScreen
+from app.ui.screens.wizard import WizardScreen
 
 class RenPatchApp(ft.Column):
     def __init__(self, page: ft.Page):
@@ -68,8 +69,12 @@ class RenPatchApp(ft.Column):
             ),
             "scanning": ScanningScreen(),
             "results": ResultsScreen(
-                on_wizard_click=lambda e: print("Wizard clicked"),
+                on_wizard_click=self.open_wizard,
                 on_manual_click=lambda e: print("Manual clicked")
+            ),
+            "wizard": WizardScreen(
+                on_back_click=lambda e: self.navigate_to("results"),
+                on_patch_complete_click=lambda e: print("Done")
             )
         }
         
@@ -83,7 +88,7 @@ class RenPatchApp(ft.Column):
                 self._build_sidebar_item("② Select Folder", "directory"),
                 self._build_sidebar_item("③ Scan Project", "scanning"),
                 self._build_sidebar_item("④ View Results", "results"),
-                self._build_sidebar_item("⑤ Take Action", "action", disabled=True),
+                self._build_sidebar_item("⑤ Take Action", "wizard", disabled=True),
             ],
             spacing=4
         )
@@ -147,21 +152,20 @@ class RenPatchApp(ft.Column):
             ft.Text("WORKFLOW", size=11, color="#555555", weight=ft.FontWeight.BOLD),
             self._build_sidebar_item("① Start", "welcome"),
             self._build_sidebar_item("② Select Folder", "directory"),
-            self._build_sidebar_item("③ Scan Project", "scanning", disabled=(screen_id not in ["scanning", "results", "action"])),
-            self._build_sidebar_item("④ View Results", "results", disabled=(screen_id not in ["results", "action"])),
-            self._build_sidebar_item("⑤ Take Action", "action", disabled=(screen_id != "action")),
+            self._build_sidebar_item("③ Scan Project", "scanning", disabled=(screen_id not in ["scanning", "results", "wizard"])),
+            self._build_sidebar_item("④ View Results", "results", disabled=(screen_id not in ["results", "wizard"])),
+            self._build_sidebar_item("⑤ Take Action", "wizard", disabled=(screen_id != "wizard")),
         ]
         
         self.update()
 
     def open_file_picker(self, e):
-        print("DEBUG: Browse clicked. Opening FilePicker...")
+        # FilePicker fixed by downgrading Flet to 0.28.2 (macOS regression in 0.28.3)
         try:
             self.file_picker.get_directory_path()
         except Exception as ex:
             import traceback
             traceback.print_exc()
-            print(f"Error opening file picker: {ex}")
             self.page.snack_bar = ft.SnackBar(ft.Text(f"Error opening file picker: {ex}"))
             self.page.snack_bar.open = True
             self.page.update()
@@ -173,23 +177,25 @@ class RenPatchApp(ft.Column):
             self.page.update()
 
     def on_file_drop(self, e):
-        print(f"DEBUG: File dropped. Name: {e.name}, Path: {e.data}")
-        if self.current_screen == "directory":
-            if not e.files:
-                return
-            
-            # Use the first dropped item's path string
-            file_path = e.files[0].path
-            
-            # Check if it is a directory
-            if os.path.isdir(file_path):
-                # Update Directory Screen State via public method
-                self.screens["directory"].set_path(file_path)
-            else:
-                # Show error feedback to user
-                self.page.snack_bar = ft.SnackBar(ft.Text("Please drop a directory, not a file."))
-                self.page.snack_bar.open = True
-                self.page.update()
+        # NOTE: Drag-and-drop is currently deferred for future iteration.
+        # Issues with Windows Admin privileges and macOS event firing.
+        pass
+        # if self.current_screen == "directory":
+        #     if not e.files:
+        #         return
+        #     
+        #     # Use the first dropped item's path string
+        #     file_path = e.files[0].path
+        #     
+        #     # Check if it is a directory
+        #     if os.path.isdir(file_path):
+        #         # Update Directory Screen State via public method
+        #         self.screens["directory"].set_path(file_path)
+        #     else:
+        #         # Show error feedback to user
+        #         self.page.snack_bar = ft.SnackBar(ft.Text("Please drop a directory, not a file."))
+        #         self.page.snack_bar.open = True
+        #         self.page.update()
 
     def start_scanning(self, e):
         self.navigate_to("scanning")
@@ -245,6 +251,10 @@ class RenPatchApp(ft.Column):
                     processed_fonts += 1
                     scan_screen.set_progress(0.3 + (0.6 * (processed_fonts / total_fonts)))
 
+            # Sort data: Dialogue > UI > Unknown
+            role_priority = {"Dialogue": 0, "Name/UI": 1, "UI": 2, "Unknown": 3}
+            font_health_data.sort(key=lambda x: role_priority.get(x["role"], 99))
+
             scan_screen.set_progress(0.9)
             time.sleep(0.5)
             
@@ -281,6 +291,10 @@ class RenPatchApp(ft.Column):
             traceback.print_exc()
             print(f"Scan Error: {e}")
             scan_screen.set_status(f"Error: {e}")
+
+    def open_wizard(self, font_data):
+        self.screens["wizard"].set_data(font_data, self.scan_data)
+        self.navigate_to("wizard")
 
     def minimize(self, e):
         self.page.window_minimized = True

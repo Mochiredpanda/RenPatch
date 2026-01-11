@@ -30,6 +30,10 @@ class ThemeColors:
     button_gradient_end: str
     button_border: str
     button_text: str
+    
+    # Utilities
+    error: str
+    primary: str
 
 class Theme:
     """Base class for themes"""
@@ -73,7 +77,11 @@ class Theme2010s(Theme):
         button_gradient_start="#52a8ec",
         button_gradient_end="#3498db",
         button_border="#2980b9",
-        button_text="#ffffff"
+        button_text="#ffffff",
+        
+        # Utilities
+        error="#e74c3c",
+        primary="#3498db"
     )
 
 # Global current theme instance

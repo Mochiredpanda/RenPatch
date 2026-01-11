@@ -23,17 +23,8 @@ class DirectoryScreen(ft.Container):
     def _init_controls(self):
         # Header Controls
         self.status_icon = ft.Text("📁", size=36)
-        self.status_text = ft.Text("Click or Drag Folder Here", size=15, color="#2c3e50", weight=ft.FontWeight.BOLD)
-        
-        # Input Field
-        self.path_input = ft.TextField(
-             label="Or paste path here", 
-             text_size=12,
-             height=40,
-             content_padding=10,
-             on_change=self._manual_path_change,
-             border_color="#bdc3c7"
-        )
+        self.status_text = ft.Text("Click to Select Folder", size=15, color="#2c3e50", weight=ft.FontWeight.BOLD)
+        self.status_subtext = ft.Text("Select your Ren'Py project directory", size=12, color="#7f8c8d")
         
         # Picker Container
         self.picker_box = ft.Container(
@@ -41,7 +32,7 @@ class DirectoryScreen(ft.Container):
                 controls=[
                     self.status_icon,
                     self.status_text,
-                    ft.Text("Select your Ren'Py project directory", size=12, color="#7f8c8d"),
+                    self.status_subtext,
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=6
@@ -107,8 +98,6 @@ class DirectoryScreen(ft.Container):
                     content=ft.Column(
                         controls=[
                             self.picker_box, 
-                            ft.Container(height=10),
-                            self.path_input,
                             ft.Container(height=20),
                             self.scan_btn
                         ],
@@ -126,13 +115,15 @@ class DirectoryScreen(ft.Container):
         
         # Update Picker Box
         self.status_icon.value = "✅"
-        self.status_text.value = os.path.basename(path)
+        # Show full path, check for length and truncate if needed or just multiline
+        self.status_text.value = path
+        self.status_text.size = 13 # Reduce size slightly for long paths
+        
+        # Hide subtext as per requirement
+        self.status_subtext.visible = False
+        
         self.picker_box.border = ft.border.all(2, "#27ae60")
         self.picker_box.bgcolor = "#e8f8f0"
-        
-        # Update Input (if not user typing)
-        if self.path_input.value != path:
-             self.path_input.value = path
         
         # Update Button
         self.scan_btn.bgcolor = theme.colors.button_gradient_end
@@ -150,8 +141,3 @@ class DirectoryScreen(ft.Container):
             self.update()
         except:
             pass
-
-    def _manual_path_change(self, e):
-        path = e.control.value.strip()
-        if os.path.isdir(path):
-            self.set_path(path)

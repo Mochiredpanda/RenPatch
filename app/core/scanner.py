@@ -93,6 +93,7 @@ def find_fonts(base_dir):
                 font_files.append(os.path.join(root, file))
     return font_files
 
+# Try to analyze font role based on file path and gui.rpy
 def analyze_font_role(base_dir, font_path):
     """
     Heuristics to determine the role of a font (Dialogue, UI, unknown).
@@ -102,7 +103,7 @@ def analyze_font_role(base_dir, font_path):
     role = "Unknown"
     confidence = "Low"
 
-    # 1. Check file path conventions
+    # Check file path conventions
     if "gui" in font_path.lower() or "interface" in font_path.lower():
         role = "UI"
         confidence = "Medium"
@@ -110,8 +111,8 @@ def analyze_font_role(base_dir, font_path):
          # Often fonts in root game dir are used for dialogue if custom
          pass
 
-    # 2. Check gui.rpy definitions
-    # We look for gui.text_font = "..." and gui.interface_text_font = "..."
+    # Check gui.rpy definitions
+    # Look for gui.text_font = "..." and gui.interface_text_font = "..."
     # This is a robust check.
     gui_rpy_path = None
     for root, _, files in os.walk(base_dir):
