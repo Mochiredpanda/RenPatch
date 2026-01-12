@@ -86,19 +86,45 @@ class ResultsScreen(ft.Container):
                 ft.Text("Select a font to patch or inspect its missing characters.", size=12, color="#7f8c8d"),
                 
                 # Font Table
-                FontTable(
-                    font_data_list=self.font_data,
-                    on_auto_fix_click=self.on_wizard_click,
-                    on_inspect_click=self.on_manual_click
-                ) if self.font_data else ft.Container(
-                    content=ft.Text("No fonts found in project directory.", italic=True, color="#95a5a6"),
-                    padding=20,
-                    alignment=ft.alignment.center
+                ft.Container(height=16),
+
+                # Font Table
+                ft.Container(
+                    content=FontTable(
+                        font_data_list=self.font_data,
+                        on_auto_fix_click=self.on_wizard_click,
+                        on_inspect_click=self.on_manual_click
+                    ) if self.font_data else ft.Container(
+                        content=ft.Text("No fonts found in project directory.", italic=True, color="#95a5a6"),
+                        padding=20,
+                        alignment=ft.alignment.center
+                    ),
+                    margin=ft.margin.only(bottom=20)
                 ),
+                
+                # Footer Explanation
+                ft.Container(
+                     content=ft.Column([
+                         ft.Row([
+                             ft.Icon("auto_fix_high", color=theme.colors.button_gradient_end, size=16),
+                             ft.Text("Wizard Mode: Automatically generate a patch font + integration script.", size=12, color="#555555"),
+                         ]),
+                         ft.Row([
+                             ft.Icon("list_alt", color="#95a5a6", size=16),
+                             ft.Text("Manual Mode: Inspect missing characters list (Coming Soon).", size=12, color="#555555"),
+                         ]),
+                     ], spacing=8),
+                     padding=20,
+                     bgcolor="#f8f9fa",
+                     border_radius=5,
+                     border=ft.border.all(1, "#ecf0f1")
+                ),
+                
+                ft.Container(height=40),
             ],
             scroll=ft.ScrollMode.ADAPTIVE,
             expand=True,
-            spacing=0
+            alignment=ft.MainAxisAlignment.START
         )
 
     def _summary_card(self, label, value, color):
