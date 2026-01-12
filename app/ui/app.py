@@ -238,13 +238,18 @@ class RenPatchApp(ft.Column):
             else:
                 for font_path in font_files:
                     filename = os.path.basename(font_path)
-                    scan_screen.set_status(f"Analyzing {filename}...")
+                    scan_screen.set_status("Analyzing font...", filepath=filename)
                     
-                    # Determine Role
-                    role, confidence = scanner.analyze_font_role(directory, font_path)
-                    
-                    # Calculate Health
+                    # 1. Calculate Health FIRST (needed for heuristic role analysis)
                     missing_chars = patcher.get_missing_characters(unique_chars, font_path)
+                    
+                    # 2. Determine Role
+                    role, confidence = scanner.analyze_font_role(
+                        directory, 
+                        font_path, 
+                        missing_count=len(missing_chars), 
+                        total_chars=len(unique_chars)
+                    )
                     
                     font_health_data.append({
                         "file_path": font_path,
