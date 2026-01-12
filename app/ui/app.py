@@ -20,6 +20,7 @@ class RenPatchApp(ft.Column):
         # self.page = page # Removed to avoid AttributeError with ft.Control.page property
         self.expand = True
         self.spacing = 0
+        self.alignment = ft.MainAxisAlignment.START
         
         # Configure Window - System Frame Enabled
         page.window_frameless = False # Enabled system title bar
@@ -27,6 +28,8 @@ class RenPatchApp(ft.Column):
         page.bgcolor = theme.colors.window_bg
         page.window_min_width = 800
         page.window_min_height = 600
+        page.window_width = 1000
+        page.window_height = 800
         page.title = "RedPanda RenPatch" # Set Window Title
         page.window_icon = "icons/favicon.png" # Attempt to set window/dock icon
 
@@ -70,7 +73,8 @@ class RenPatchApp(ft.Column):
             "scanning": ScanningScreen(),
             "results": ResultsScreen(
                 on_wizard_click=self.open_wizard,
-                on_manual_click=lambda e: print("Manual clicked")
+                on_manual_click=lambda e: print("Manual clicked"),
+                on_back_click=lambda e: self.navigate_to("directory")
             ),
             "wizard": WizardScreen(
                 on_back_click=lambda e: self.navigate_to("results"),
@@ -107,7 +111,7 @@ class RenPatchApp(ft.Column):
             content=self.screens["welcome"] # Initial screen
         )
 
-        # Removed TitleBar and Top Container
+        # Updated controls
         self.controls = [
             ft.Container(
                 expand=True,
@@ -119,7 +123,8 @@ class RenPatchApp(ft.Column):
                         self.content_area
                     ],
                     spacing=0,
-                    expand=True
+                    expand=True,
+                    vertical_alignment=ft.CrossAxisAlignment.STRETCH
                 )
             )
         ]
@@ -162,7 +167,9 @@ class RenPatchApp(ft.Column):
     def open_file_picker(self, e):
         # FilePicker fixed by downgrading Flet to 0.28.2 (macOS regression in 0.28.3)
         try:
-            self.file_picker.get_directory_path()
+            self.file_picker.get_directory_path(
+                initial_directory=os.path.expanduser("~/Downloads")
+            )
         except Exception as ex:
             import traceback
             traceback.print_exc()

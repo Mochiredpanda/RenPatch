@@ -3,13 +3,15 @@ from app.ui.theme import current_theme as theme
 from app.ui.components.font_table import FontTable
 
 class ResultsScreen(ft.Container):
-    def __init__(self, on_wizard_click, on_manual_click):
+    def __init__(self, on_wizard_click, on_manual_click, on_back_click=None):
         super().__init__()
         self.on_wizard_click = on_wizard_click
         self.on_manual_click = on_manual_click
+        self.on_back_click = on_back_click
         self.expand = True
         self.padding = 32
         self.bgcolor = "white"
+        self.alignment = ft.alignment.top_left # align container content to top left
         
         # Data Placeholders
         self.font_data = [] # List of dicts
@@ -32,25 +34,50 @@ class ResultsScreen(ft.Container):
         total_fonts = len(self.font_data)
         critical_fonts = sum(1 for f in self.font_data if f['missing_count'] > 0)
         
+        # Header Row with Back Button
+        header_row = ft.Row(
+            controls=[
+                ft.Column(
+                    controls=[
+                        ft.Text("Scan Results", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            width=50, height=3, bgcolor="#3498db", border_radius=1, margin=ft.margin.only(top=4)
+                        )
+                    ],
+                    spacing=0
+                ),
+                ft.TextButton(
+                    "Back", 
+                    icon="arrow_back", 
+                    on_click=self.on_back_click,
+                    visible=bool(self.on_back_click)
+                )
+                #  ft.Row([
+                #     ft.IconButton(icon="arrow_back", on_click=self.on_back_click, visible=bool(self.on_back_click)),
+                #     ft.Text("Scan Results", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
+                #  ]),
+                 # Placeholder for potential future actions
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+        )
+
         return ft.Column(
             controls=[
                 # Header
-                ft.Container(
-                    content=ft.Text("Font Health Dashboard", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
-                    border=ft.border.only(bottom=ft.BorderSide(2, "#3498db")),
-                    padding=ft.padding.only(bottom=8),
-                    width=float("inf")
-                ),
-                
+                header_row,
+
+                ft.Container(height=24),
+
                 # Global Summary
                 ft.Row(
                     controls=[
-                        self._summary_card("Files Scanned", self.global_stats['files'], "#3498db"),
-                        self._summary_card("Unique Chars", self.global_stats['unique_chars'], "#9b59b6"),
-                        self._summary_card("Fonts Found", total_fonts, "#e67e22"),
-                        self._summary_card("Issues Detected", critical_fonts, "#e74c3c" if critical_fonts > 0 else "#27ae60"),
+                        self._summary_card("Scripts Scanned", self.global_stats['files'], "#3498db"),
+                        self._summary_card("Unique Chars", self.global_stats['unique_chars'], "#3498db"),
+                        self._summary_card("Fonts Found", total_fonts, "#3498db"),
+                        self._summary_card("Missing Chars", critical_fonts, "#e74c3c" if critical_fonts > 0 else "#3498db"),
                     ],
-                    spacing=16
+                    spacing=16,
+                    # alignment=ft.MainAxisAlignment.START
                 ),
                 
                 ft.Container(height=24),
@@ -69,7 +96,9 @@ class ResultsScreen(ft.Container):
                     alignment=ft.alignment.center
                 ),
             ],
-            scroll=ft.ScrollMode.AUTO
+            scroll=ft.ScrollMode.ADAPTIVE,
+            expand=True,
+            spacing=0
         )
 
     def _summary_card(self, label, value, color):
