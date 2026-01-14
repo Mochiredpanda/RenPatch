@@ -28,8 +28,9 @@ class RenPatchApp(ft.Column):
         page.bgcolor = theme.colors.window_bg
         page.window_min_width = 800
         page.window_min_height = 600
-        page.window_width = 1000
-        page.window_height = 800
+        page.window_width = 1200
+        page.window_height = 900
+        page.window_maximized = True # Enabled as per user request
         page.title = "RedPanda RenPatch" # Set Window Title
         page.window_icon = "icons/favicon.png" # Attempt to set window/dock icon
 
@@ -257,15 +258,20 @@ class RenPatchApp(ft.Column):
                         "confidence": confidence,
                         "missing_count": len(missing_chars),
                         "total_chars": len(unique_chars),
-                        "missing_set": missing_chars # Store for later patching
+                        "missing_set": missing_chars, # Store for later patching
+                        "file_size": f"{os.path.getsize(font_path) / (1024 * 1024):.2f} MB"
                     })
                     
                     processed_fonts += 1
                     scan_screen.set_progress(0.3 + (0.6 * (processed_fonts / total_fonts)))
 
-            # Sort data: Dialogue > UI > Unknown
-            role_priority = {"Dialogue": 0, "Name/UI": 1, "UI": 2, "Unknown": 3}
-            font_health_data.sort(key=lambda x: role_priority.get(x["role"], 99))
+            # Sort data: 
+            # 1. Role (Dialogue is critical)
+            # 2. Status (Critical/Missing > Perfect)
+            role_priority = {"Dialogue": 0, "Unknown": 1, "Name/UI": 2, "UI": 3, "UI/Symbols": 3}
+            # Secondary sort: Missing count DESC (Critical top), but for UI/Safe roles we don't care as much.
+            # Actually, just sorting by Role then Missing DESC works well for "Most Critical Dialogue Font".
+            font_health_data.sort(key=lambda x: (role_priority.get(x["role"], 99), -x["missing_count"]))
 
             scan_screen.set_progress(0.9)
             time.sleep(0.5)
@@ -281,9 +287,22 @@ class RenPatchApp(ft.Column):
             # Count rpy files for stats
             rpy_count = sum(1 for root, _, files in os.walk(directory) for f in files if f.endswith('.rpy'))
             
+            # Smart Missing Char Count:
+            # We take the missing count of the Top Critical Font (which is now at index 0).
+            # If the top font is Dialogue/Unknown, its missing count is the project's bottleneck.
+            # If the top font is UI (meaning no dialogue fonts found?), then ??? use 0 or that font's count.
+            # We assume the user wants to fix the squares in dialogue.
+            
+            primary_missing_count = 0
+            if font_health_data:
+                top_font = font_health_data[0]
+                if top_font["role"] in ["Dialogue", "Unknown"]:
+                    primary_missing_count = top_font["missing_count"]
+            
             global_stats = {
                 "files": rpy_count,
-                "unique_chars": len(unique_chars)
+                "unique_chars": len(unique_chars),
+                "missing_chars_count": primary_missing_count
             }
             
             results_screen.update_data(global_stats, font_health_data)

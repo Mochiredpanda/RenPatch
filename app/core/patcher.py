@@ -146,26 +146,121 @@ def generate_patch_font(missing_chars, full_font_path, output_path):
         print(f"Error generating patch font: {e}")
         return False, set(), missing_chars
     
+### MULTI-SOURCE PATCHING ###
+
+def generate_multi_patch(missing_chars, donor_paths, output_dir):
+    """
+    Tries to find missing characters across a prioritized list of donor fonts.
+    Generates one subset font per donor if used.
+    
+    Returns:
+        patches_info (list): [{ "filename": "patch_0.ttf", "chars": set(...) }, ...]
+        failed_chars (set): Chars not found in any donor.
+    """
+    if not missing_chars:
+        return [], set()
+
+    remaining_chars = set(missing_chars)
+    patches_info = []
+    
+    print(f"\n--- Starting Multi-Patch Generation ({len(donor_paths)} donors) ---")
+
+    for i, donor_path in enumerate(donor_paths):
+        if not remaining_chars:
+            break
+            
+        print(f"Checking donor {i+1}: {os.path.basename(donor_path)}...")
+        
+        try:
+            # 1. Check which needed chars are in this donor
+            font = TTFont(donor_path)
+            cmap = font.getBestCmap() # Unicode map
+            
+            chars_found_in_donor = set()
+            for char in remaining_chars:
+                if ord(char) in cmap:
+                    chars_found_in_donor.add(char)
+            font.close()
+            
+            if not chars_found_in_donor:
+                print("  No useful characters found.")
+                continue
+                
+            # 2. Generate a subset for these characters
+            patch_filename = f"patch_{i}.ttf"
+            output_path = os.path.join(output_dir, patch_filename)
+            
+            # Using the existing single-font generator logic, but specifying exact chars
+            # We call the subsetter directly to avoid redundancy
+            
+            options = subset.Options()
+            options.notdef_outline = True
+            
+            donor_font = TTFont(donor_path)
+            subsetter = subset.Subsetter(options=options)
+            text_to_extract = "".join(list(chars_found_in_donor))
+            subsetter.populate(text=text_to_extract)
+            subsetter.subset(donor_font)
+            donor_font.save(output_path)
+            donor_font.close()
+            
+            # 3. Verify
+            success, failed_verify = verify_patch(chars_found_in_donor, output_path)
+            
+            print(f"  Generated {patch_filename} with {len(success)} chars.")
+            
+            if success:
+                patches_info.append({
+                    "filename": patch_filename,
+                    "chars": success,
+                    "source": os.path.basename(donor_path)
+                })
+                # Update remaining
+                remaining_chars -= success
+                
+        except Exception as e:
+            print(f"Error processing donor {donor_path}: {e}")
+            continue
+
+    return patches_info, remaining_chars
+
 ### FONT PACTCH SCRIPT ###
-def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font_filename, output_path, log_path=None):
+
+def generate_renpy_script(patches_list, failed_chars, lite_font_filename, output_path, log_path=None):
     """
-    Creates a drop-in .rpy script with explicit character mapping for every missing glyph.
-    Generates a JSON log for the GUI version.
+    Creates a drop-in .rpy script.
+    
+    patches_list: List of dicts, each containing:
+      - filename: "patch_0.ttf"
+      - chars: set of characters
+      - source: "SourceHanSans.otf" (optional metadata)
+    
+    failed_chars: Set of characters that couldn't be patched.
     """
-    if not success_chars and not failed_chars:
+    
+    success_count = sum(len(p['chars']) for p in patches_list)
+    total_needed = success_count + len(failed_chars)
+    
+    if total_needed == 0:
         return False
     
     ## Generate Log File ##
     if log_path:
-        # Create rich data objects
-        success_data = []
-        for char in sorted(list(success_chars), key=lambda x: ord(x)):
-            success_data.append({
-                "char": char,
-                "hex": f"U+{ord(char):04X}",
-                "name": unicodedata.name(char, "Unknown")
+        log_patches = []
+        for p in patches_list:
+            char_data = []
+            for char in sorted(list(p['chars']), key=lambda x: ord(x)):
+                char_data.append({
+                    "char": char,
+                    "hex": f"U+{ord(char):04X}",
+                    "name": unicodedata.name(char, "Unknown")
+                })
+            log_patches.append({
+                "filename": p['filename'],
+                "source": p.get('source', 'Unknown'),
+                "chars": char_data
             })
-            
+
         failed_data = []
         for char in sorted(list(failed_chars), key=lambda x: ord(x)):
             failed_data.append({
@@ -175,15 +270,17 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
             })
 
         log_data = {
-            "success": success_data,
+            "patches": log_patches,
             "failed": failed_data,
-            "patch_filename": patch_filename,
-            "lite_font_filename": lite_font_filename
+            "lite_font_filename": lite_font_filename,
+            "summary": {
+                "patched": success_count,
+                "failed": len(failed_chars)
+            }
         }
         try:
             with open(log_path, "w", encoding="utf-8") as f:
                 json.dump(log_data, f, ensure_ascii=False, indent=4)
-            print("\n--- Patch Log ---")
             print(f"Log generated: {log_path}")
         except Exception as e:
             print(f"Error generating log file: {e}")
@@ -191,7 +288,7 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
     ## Generate Script ##
     script_lines = [
         "# --- RenPatch Auto-Generated Integration ---",
-        f"# Patched Characters: {len(success_chars)}",
+        f"# Patched Characters: {success_count}",
         f"# Failed Characters: {len(failed_chars)}",
         "",
         "init python:",
@@ -199,22 +296,30 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
         "    renpatch_font = FontGroup()"
     ]
     
-    # Add explicit surgical entries for all SUCCESSFUL characters
-    sorted_success = sorted(list(success_chars), key=lambda x: ord(x))
-    
-    script_lines.append("")
-    script_lines.append("    # Explicitly map successfully patched font")
-    for char in sorted_success:
-        hex_code_py = hex(ord(char))
-        hex_code_display = f"U+{ord(char):04X}"
-        script_lines.append(f"    renpatch_font = renpatch_font.add('{patch_filename}', {hex_code_py}, {hex_code_py}) # {char} ({hex_code_display})")
-
-    # Add comments for FAILED characters
-    if failed_chars:
+    # 1. Add Patches
+    if patches_list:
         script_lines.append("")
+        script_lines.append("    # --- Patch Fonts ---")
+
+        for patch in patches_list:
+            filename = patch['filename']
+            source = patch.get('source', '')
+            chars = sorted(list(patch['chars']), key=lambda x: ord(x))
+            
+            script_lines.append(f"    # From: {source} ({len(chars)} chars)")
+            
+            for char in chars:
+                hex_code_py = hex(ord(char))
+                hex_code_display = f"U+{ord(char):04X}"
+                # Add individual char mapping
+                script_lines.append(f"    renpatch_font = renpatch_font.add('{filename}', {hex_code_py}, {hex_code_py}) # {char} ({hex_code_display})")
+            
+            script_lines.append("")
+    
+    # 2. Add Failed Chars Comments
+    if failed_chars:
         script_lines.append("    # === FAILED TO PATCH CHARACTERS ===")
-        script_lines.append("    # The following characters were NOT found in the donor font.")
-        script_lines.append("    # You may need to find another donor font or handle them manually.")
+        script_lines.append("    # The following characters were NOT found in any donor fonts.")
         
         sorted_failed = sorted(list(failed_chars), key=lambda x: ord(x))
         for char in sorted_failed:
@@ -225,22 +330,20 @@ def generate_renpy_script(success_chars, failed_chars, patch_filename, lite_font
                 name = "Unknown"
             script_lines.append(f"    # FAILED: {char} ({hex_code}) - {name}")
 
-    # Add the Lite font as the final fallback for everything else
+    # 3. Fallback to Lite Font
     script_lines.append("")
     script_lines.append("    # Use Lite font for all the other characters")
     script_lines.append(f"    renpatch_font = renpatch_font.add('{lite_font_filename}', 0x0000, 0xffff)")
     
-    # Map the group to the config
+    # 4. Config Map
     script_lines.append("")
     script_lines.append('    # Map the group to "renpatch_style" for use')
-    script_lines.append("    # Rename your font group name to replace 'renpatch_style' if needed.")
-    script_lines.append("    # Make sure to keep your font group name IN the single quotes.")
     script_lines.append("    config.font_name_map['renpatch_style'] = renpatch_font")
 
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(script_lines))
-        print(f"\nIntegration script generated with {len(success_chars)} out of {len(success_chars) + len(failed_chars)} explicit mappings.")
+        print(f"\nIntegration script generated at {output_path}")
         return True
     except Exception as e:
         print(f"Error generating Ren'Py script: {e}")

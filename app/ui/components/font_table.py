@@ -3,7 +3,7 @@ from app.ui.theme import current_theme as theme
 import os
 
 class FontTable(ft.DataTable):
-    def __init__(self, font_data_list, on_auto_fix_click, on_inspect_click):
+    def __init__(self, font_data_list):
         """
         font_data_list: List of dictionaries/objects containing:
           - file_path
@@ -15,9 +15,9 @@ class FontTable(ft.DataTable):
             columns=[
                 ft.DataColumn(ft.Text("Font File", weight="bold", size=14, color="black")),
                 ft.DataColumn(ft.Text("Role", weight="bold", size=14, color="black")),
+                ft.DataColumn(ft.Text("Size", weight="bold", size=14, color="black")),
                 ft.DataColumn(ft.Text("Status", weight="bold", size=14, color="black")),
                 ft.DataColumn(ft.Text("Missing", weight="bold", size=14, color="black")),
-                ft.DataColumn(ft.Text("Action", weight="bold", size=14, color="black")),
             ],
             border=ft.border.all(1, "#bdc3c7"), # Darker border
             border_radius=4,
@@ -31,8 +31,6 @@ class FontTable(ft.DataTable):
             column_spacing=30 # Increased spacing
         )
         self.font_data_list = font_data_list
-        self.on_auto_fix_click = on_auto_fix_click
-        self.on_inspect_click = on_inspect_click
         self._build_rows()
 
     def _build_rows(self):
@@ -41,6 +39,7 @@ class FontTable(ft.DataTable):
             filename = os.path.basename(font['file_path'])
             missing = font['missing_count']
             role = font['role']
+            file_size = font.get('file_size', "N/A")
             
             # Status Logic
             is_ui_role = role in ["UI", "UI/Symbols", "Name/UI"]
@@ -59,7 +58,8 @@ class FontTable(ft.DataTable):
                 status_text = "Minor"
                 status_color = "orange"
             else:
-                status_icon = ft.Icon("error_outline", color="red", size=16)
+                # User request: Triangle icon (Warning) for Critical too, same shape as Minor but red
+                status_icon = ft.Icon("warning", color="red", size=16)
                 status_text = "Critical"
                 status_color = "red"
 
@@ -69,25 +69,6 @@ class FontTable(ft.DataTable):
             if is_ui_role and missing > 0:
                  missing_text = f"{missing} (Ignored)"
                  missing_display_color = "#95a5a6" # Greyed out
-
-            # Action Buttons
-            actions = ft.Row(
-                controls=[
-                    ft.IconButton(
-                        icon="auto_fix_high", 
-                        tooltip="Auto Fix (Wizard)",
-                        icon_color=theme.colors.button_gradient_end,
-                        on_click=lambda e, f=font: self.on_auto_fix_click(f)
-                    ),
-                    ft.IconButton(
-                        icon="list_alt", 
-                        tooltip="Inspect Details",
-                        icon_color="#95a5a6",
-                        on_click=lambda e, f=font: self.on_inspect_click(f)
-                    )
-                ],
-                spacing=0
-            )
 
             self.rows.append(
                 ft.DataRow(
@@ -99,9 +80,9 @@ class FontTable(ft.DataTable):
                             ], spacing=10)
                         ),
                         ft.DataCell(ft.Text(role, size=14, color="black")),
+                        ft.DataCell(ft.Text(file_size, size=14, color="#555555")), # Size Column
                         ft.DataCell(ft.Row([status_icon, ft.Text(status_text, color=status_color, size=14, weight=ft.FontWeight.W_500)], spacing=6)),
                         ft.DataCell(ft.Text(missing_text, size=14, color=missing_display_color)),
-                        ft.DataCell(actions),
                     ]
                 )
             )

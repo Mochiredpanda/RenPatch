@@ -67,8 +67,15 @@ class DirectoryScreen(ft.Container):
 
     def _build_layout(self):
         # Header Row
+        # Header Row
         header_row = ft.Row(
             controls=[
+                ft.IconButton(
+                    icon="arrow_back", 
+                    on_click=self.on_back_click,
+                    visible=bool(self.on_back_click),
+                    tooltip="Back"
+                ),
                 ft.Column(
                     controls=[
                         ft.Text("Select Project Directory", size=18, color="#2c3e50", weight=ft.FontWeight.BOLD),
@@ -77,16 +84,9 @@ class DirectoryScreen(ft.Container):
                         )
                     ],
                     spacing=0
-                ),
-                ft.TextButton(
-                    "Back", 
-                    icon="arrow_back", 
-                    on_click=self.on_back_click,
-                    visible=bool(self.on_back_click)
                 )
             ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.START
+            vertical_alignment=ft.CrossAxisAlignment.CENTER
         )
 
         return ft.Column(

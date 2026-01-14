@@ -15,7 +15,7 @@ class WizardScreen(ft.Container):
         
         # State
         self.target_font_data = None
-        self.donor_font_path = None
+        self.donor_fonts = [] # List of paths
         self.scan_data = None
         
         # UI Elements
@@ -25,8 +25,10 @@ class WizardScreen(ft.Container):
         self.target_info = ft.Text("Target: None", size=16, weight=ft.FontWeight.BOLD)
         self.missing_count = ft.Text("Missing: 0", size=14, color=theme.colors.error)
         
-        self.donor_path_text = ft.Text("No font selected", size=12, italic=True)
         self.file_picker = ft.FilePicker(on_result=self.on_donor_file_picked)
+        
+        # Donor List View
+        self.donor_list_view = ft.Column(spacing=5)
         
         self.log_view = ft.Column(scroll=ft.ScrollMode.AUTO, height=200)
         self.progress_bar = ft.ProgressBar(width=400, color=theme.colors.primary, bgcolor="#eeeeee", value=0)
@@ -69,24 +71,35 @@ class WizardScreen(ft.Container):
                 
                 ft.Container(height=16),
                 
-                # Donor Section
+                # Donor Section (Multi-source)
                 ft.Container(
                     content=ft.Column([
-                        ft.Text("2. Donor Font (Source)", weight="bold", color=theme.colors.text_primary),
-                        ft.Text("Select a full font (e.g. SourceHanSansSC-Regular.otf) to extract characters from.", size=12, color=theme.colors.text_secondary),
-                        ft.Row([
-                            ft.ElevatedButton(
-                                "Select File", 
-                                icon="folder_open", 
-                                on_click=lambda _: self.file_picker.pick_files(allowed_extensions=["ttf", "otf"]),
-                                style=ft.ButtonStyle(
-                                    color=theme.colors.button_text,
-                                    bgcolor={"": theme.colors.button_gradient_end},
-                                    shape=ft.RoundedRectangleBorder(radius=4),
-                                )
-                            ),
-                            self.donor_path_text
-                        ]),
+                        ft.Text("2. Donor Pool (Prioritized)", weight="bold", color=theme.colors.text_primary),
+                        ft.Text("Add one or more fonts. The wizard will search them in order.", size=12, color=theme.colors.text_secondary),
+                        
+                        ft.Container(height=8),
+                        
+                        # List of added fonts
+                        ft.Container(
+                            content=self.donor_list_view,
+                            bgcolor="white",
+                            border=ft.border.all(1, "#f0f0f0"),
+                            border_radius=4,
+                            padding=10
+                        ),
+                        
+                        ft.Container(height=8),
+                        
+                        ft.ElevatedButton(
+                            "Add Font", 
+                            icon="add", 
+                            on_click=lambda _: self.file_picker.pick_files(allowed_extensions=["ttf", "otf"]),
+                            style=ft.ButtonStyle(
+                                color=theme.colors.button_text,
+                                bgcolor={"": theme.colors.button_gradient_end},
+                                shape=ft.RoundedRectangleBorder(radius=4),
+                            )
+                        ),
                     ]),
                     padding=16,
                     bgcolor=theme.colors.panel_bg,
@@ -123,15 +136,22 @@ class WizardScreen(ft.Container):
         )
         return self
 
-    def set_data(self, target_font_data, scan_data):
-        self.target_font_data = target_font_data
+    def set_data(self, font_data_list, scan_data):
+        self.target_font_data = font_data_list[0] if font_data_list else None
         self.scan_data = scan_data
         
+        if not self.target_font_data:
+             self.target_info.value = "Target: No Fonts Found"
+             self.missing_count.value = "Missing: 0"
+             return
+
         # Reset UI
-        self.target_info.value = f"Target: {os.path.basename(target_font_data['file_path'])}"
-        self.missing_count.value = f"Missing Characters: {target_font_data['missing_count']}"
-        self.donor_path_text.value = "No font selected"
-        self.donor_font_path = None
+        self.target_info.value = f"Target: {os.path.basename(self.target_font_data['file_path'])} (Critical)"
+        self.missing_count.value = f"Missing Characters: {self.target_font_data['missing_count']}"
+        
+        self.donor_fonts = []
+        self._refresh_donor_list()
+        
         self.patch_btn.disabled = True
         self.log_view.controls.clear()
         self.progress_bar.value = 0
@@ -143,11 +163,48 @@ class WizardScreen(ft.Container):
 
     def on_donor_file_picked(self, e: ft.FilePickerResultEvent):
         if e.files:
-            file_path = e.files[0].path
-            self.donor_font_path = file_path
-            self.donor_path_text.value = os.path.basename(file_path)
+            for f in e.files:
+                if f.path not in self.donor_fonts:
+                    self.donor_fonts.append(f.path)
+            
+            self._refresh_donor_list()
             self.patch_btn.disabled = False
             self.page.update()
+            
+    def _refresh_donor_list(self):
+        self.donor_list_view.controls.clear()
+        
+        if not self.donor_fonts:
+            self.donor_list_view.controls.append(ft.Text("No fonts added yet.", italic=True, size=12, color="#95a5a6"))
+        else:
+            for i, font_path in enumerate(self.donor_fonts):
+                filename = os.path.basename(font_path)
+                
+                row = ft.Row(
+                    controls=[
+                        ft.Icon("font_download", size=16, color="#7f8c8d"),
+                        ft.Text(f"{i+1}. {filename}", size=12, weight="bold", expand=True),
+                        ft.IconButton(
+                            icon="close", 
+                            icon_size=14, 
+                            icon_color="red", 
+                            tooltip="Remove",
+                            on_click=lambda e, path=font_path: self._remove_donor(path)
+                        )
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                )
+                self.donor_list_view.controls.append(row)
+        
+        # Check generate button state
+        self.patch_btn.disabled = len(self.donor_fonts) == 0
+        if hasattr(self, "page") and self.page:
+            self.page.update()
+
+    def _remove_donor(self, path):
+        if path in self.donor_fonts:
+            self.donor_fonts.remove(path)
+            self._refresh_donor_list()
 
     def log(self, message, color="white"):
         self.log_view.controls.append(ft.Text(message, color=color, size=12, font_family="Consolas"))
@@ -163,12 +220,12 @@ class WizardScreen(ft.Container):
 
     def _run_patch_process(self):
         try:
-            self.log(f"Starting patch process...", "cyan")
+            self.log(f"Starting multi-source patch...", "cyan")
             
             project_dir = self.scan_data["directory"]
             game_dir = os.path.join(project_dir, "game") # Assume standard structure
             if not os.path.exists(game_dir):
-                 # Fallback if selected folder IS game/
+                 # Fallback
                  if os.path.basename(project_dir) == "game":
                      game_dir = project_dir
                  else:
@@ -176,22 +233,23 @@ class WizardScreen(ft.Container):
             
             self.log(f"Output directory: {game_dir}")
             
-            # 1. Generate Patch Font
             missing_chars = self.target_font_data["missing_set"]
-            patch_font_path = os.path.join(game_dir, "patch.ttf")
             
-            self.log(f"Generating subset font from {os.path.basename(self.donor_font_path)}...", "yellow")
+            # 1. Generate Multiple Patches
+            self.log(f"Searching for {len(missing_chars)} chars in {len(self.donor_fonts)} fonts...", "yellow")
             
-            success, patched_chars, failed_chars = patcher.generate_patch_font(
+            patches_list, failed_chars = patcher.generate_multi_patch(
                 missing_chars, 
-                self.donor_font_path, 
-                patch_font_path
+                self.donor_fonts, 
+                game_dir
             )
             
-            if success:
-                self.log(f"Patch font created: patch.ttf ({len(patched_chars)} chars)", "green")
+            if patches_list:
+                for p in patches_list:
+                    self.log(f"Generated {p['filename']} from {p['source']} ({len(p['chars'])} chars)", "green")
             else:
-                self.log("Failed to create patch font.", "red")
+                self.log("No patches could be generated.", "red")
+                self.status_text.value = "Failed."
                 return
 
             # 2. Generate Script
@@ -202,9 +260,8 @@ class WizardScreen(ft.Container):
             lite_font_name = os.path.basename(self.target_font_data['file_path'])
             
             patcher.generate_renpy_script(
-                patched_chars,
+                patches_list,
                 failed_chars,
-                "patch.ttf", # Relative path for Ren'Py
                 lite_font_name, # Relative path (assuming it is in game or configured paths)
                 script_path,
                 log_path
@@ -213,7 +270,9 @@ class WizardScreen(ft.Container):
             self.log(f"Script created: renpatch_init.rpy", "green")
             
             if failed_chars:
-                self.log(f"Warning: {len(failed_chars)} characters could not be found in donor font.", "orange")
+                self.log(f"Warning: {len(failed_chars)} characters could not be found in any donor.", "orange")
+            else:
+                self.log("Success! All characters patched.", "green")
             
             self.status_text.value = "Patch Complete!"
             self.progress_bar.value = 1.0
